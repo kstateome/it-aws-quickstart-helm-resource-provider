@@ -3,9 +3,9 @@ module github.com/aws-quickstart/quickstart-helm-resource-provider
 go 1.13
 
 require (
-	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.1-0.20200827221319-c1261e85f57d
-	github.com/aws/aws-lambda-go v1.19.1
-	github.com/aws/aws-sdk-go v1.35.7
+	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
+	github.com/aws/aws-lambda-go v1.22.0
+	github.com/aws/aws-sdk-go v1.36.21
 	github.com/gofrs/flock v0.8.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/pkg/errors v0.9.1
