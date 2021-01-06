@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,6 +22,7 @@ import (
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/repo"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/yaml"
 )
 
@@ -51,6 +51,15 @@ type HelmListData struct {
 	Chart        string `json:",omitempty"`
 	Namespace    string `json:",omitempty"`
 }
+
+type ReleaseState string
+
+const (
+	ReleaseFound    ReleaseState = "ReleaseFound"
+	ReleaseNotFound ReleaseState = "ReleaseNotFound"
+	ReleasePending  ReleaseState = "ReleasePending"
+	ReleaseError    ReleaseState = "ReleaseError"
+)
 
 // HelmClientInvoke generates the namespaced helm client
 func helmClientInvoke(namespace *string, getter genericclioptions.RESTClientGetter) (*action.Configuration, error) {
@@ -145,12 +154,29 @@ func addHelmRepoUpdate(name string, url string, settings *cli.EnvSettings) error
 
 // HelmInstall invokes the helm install client
 func (c *Clients) HelmInstall(config *Config, values map[string]interface{}, chart *Chart, id string) error {
-	log.Printf("Installing release %s", *config.Name)
 	var cp string
 	var err error
+	var state ReleaseState
 	client := action.NewInstall(c.HelmClient)
 	client.Description = id
 	client.ReleaseName = *config.Name
+
+	state, err = c.HelmVerifyRelease(*config.Name, id)
+	if err != nil {
+		return genericError("Helm install", err)
+	}
+	switch state {
+	case ReleasePending:
+		log.Printf("Release with name: %s and ID: %s is pending state.", *config.Name, id)
+		return nil
+	case ReleaseError:
+		return err
+	case ReleaseFound:
+		log.Printf("Found release with name: %s and ID: %s. Please check..", *config.Name, id)
+		return genericError("Helm install", errors.New("release already exists"))
+	}
+
+	log.Printf("Installing release %s", *config.Name)
 
 	switch *chart.ChartType {
 	case "Remote":
@@ -205,31 +231,10 @@ func (c *Clients) HelmInstall(config *Config, values map[string]interface{}, cha
 	}
 	client.Namespace = *config.Namespace
 	_, err = client.Run(chartRequested, values)
-
 	if err != nil {
-		if err.Error() != "cannot re-use a name that is still in use" {
-			return genericError("Helm install", err)
-		}
-		status, staterr := c.HelmStatus(client.ReleaseName)
-		if staterr != nil {
-			return genericError("Helm status error", staterr)
-		}
-		fmt.Printf("status.Description: \"%v\" id: \"%v\"\n", status.Description, id)
-		for {
-			status, staterr = c.HelmStatus(client.ReleaseName)
-			if staterr != nil {
-				return genericError("Helm status error", staterr)
-			}
-			if status.Description != "Initial install underway" {
-				break
-			}
-			fmt.Println("Waiting for description to be populated...")
-			time.Sleep(5 * time.Second)
-		}
-		if status.Description != id {
-			return genericError("another release exists with the same name", err)
-		}
+		return genericError("Helm install", err)
 	}
+	log.Printf("Release installation completed. Waiting for resources to stablize.")
 	return nil
 }
 
@@ -362,4 +367,30 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 	log.Printf("Release %q has been upgraded. Happy Helming!\n", rel.Name)
 	return nil
 
+}
+
+// HelmVerifyDescription verifies the if the description matches ID
+func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error) {
+	status, staterr := c.HelmStatus(name)
+	if staterr != nil {
+		re := regexp.MustCompile(`not found`)
+		if re.MatchString(staterr.Error()) {
+			log.Printf("Release not found..")
+			return ReleaseNotFound, nil
+		}
+	}
+
+	switch status.Status {
+	case release.StatusPendingInstall, release.StatusPendingUpgrade, release.StatusPendingRollback:
+		log.Printf("Release: %s in status: %s", name, status.Status)
+		return ReleasePending, nil
+	case release.StatusDeployed:
+		if status.Description == id {
+			return ReleaseFound, nil
+		}
+		return ReleaseError, errors.New("another release exists with the same name")
+	default:
+		return ReleaseError, errors.New("unknown erro")
+	}
+	return ReleaseFound, nil
 }
