@@ -16,6 +16,7 @@ To declare this entity in your AWS CloudFormation template, use the following sy
         "<a href="#kubeconfig" title="KubeConfig">KubeConfig</a>" : <i>String</i>,
         "<a href="#rolearn" title="RoleArn">RoleArn</a>" : <i>String</i>,
         "<a href="#repository" title="Repository">Repository</a>" : <i>String</i>,
+        "<a href="#repositoryoptions" title="RepositoryOptions">RepositoryOptions</a>" : <i><a href="repositoryoptions.md">RepositoryOptions</a></i>,
         "<a href="#chart" title="Chart">Chart</a>" : <i>String</i>,
         "<a href="#namespace" title="Namespace">Namespace</a>" : <i>String</i>,
         "<a href="#name" title="Name">Name</a>" : <i>String</i>,
@@ -38,6 +39,7 @@ Properties:
     <a href="#kubeconfig" title="KubeConfig">KubeConfig</a>: <i>String</i>
     <a href="#rolearn" title="RoleArn">RoleArn</a>: <i>String</i>
     <a href="#repository" title="Repository">Repository</a>: <i>String</i>
+    <a href="#repositoryoptions" title="RepositoryOptions">RepositoryOptions</a>: <i><a href="repositoryoptions.md">RepositoryOptions</a></i>
     <a href="#chart" title="Chart">Chart</a>: <i>String</i>
     <a href="#namespace" title="Namespace">Namespace</a>: <i>String</i>
     <a href="#name" title="Name">Name</a>: <i>String</i>
@@ -88,6 +90,16 @@ Repository url. Defaults to kubernetes-charts.storage.googleapis.com
 _Required_: No
 
 _Type_: String
+
+_Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
+
+#### RepositoryOptions
+
+Extra options for repository
+
+_Required_: No
+
+_Type_: <a href="repositoryoptions.md">RepositoryOptions</a>
 
 _Update requires_: [No interruption](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-updating-stacks-update-behaviors.html#update-no-interrupt)
 

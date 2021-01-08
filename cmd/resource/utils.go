@@ -66,7 +66,8 @@ type Config struct {
 
 // Chart for chart data
 type Chart struct {
-	Chart, ChartName, ChartPath, ChartType, ChartRepo, ChartVersion, ChartRepoURL *string `json:",omitempty"`
+	Chart, ChartName, ChartPath, ChartType, ChartRepo, ChartVersion, ChartRepoURL, ChartUsername, ChartPassword *string `json:",omitempty"`
+	ChartSkipTLSVerify, ChartLocalCA                                                                            *bool   `json:",omitempty"`
 }
 
 //Inputs for Config and Values for helm
@@ -157,7 +158,7 @@ func (c *Clients) processValues(m *Model) (map[string]interface{}, error) {
 }
 
 // getChartDetails parse chart
-func getChartDetails(m *Model) (*Chart, error) {
+func (c *Clients) getChartDetails(m *Model) (*Chart, error) {
 	cd := &Chart{}
 	// Parse chart
 	switch m.Chart {
@@ -194,6 +195,42 @@ func getChartDetails(m *Model) (*Chart, error) {
 			default:
 				cd.ChartRepo = aws.String("stable")
 				cd.ChartName = m.Chart
+			}
+			// Set chart verify to default
+			cd.ChartSkipTLSVerify = aws.Bool(false)
+			cd.ChartLocalCA = aws.Bool(false)
+			if !IsZero(m.RepositoryOptions) {
+				if !IsZero(m.RepositoryOptions.Username) && !IsZero(m.RepositoryOptions.Password) {
+					log.Printf("Using basic authentication with username: %s for repository", *m.RepositoryOptions.Username)
+					cd.ChartUsername = m.RepositoryOptions.Username
+					cd.ChartPassword = m.RepositoryOptions.Password
+				}
+				// IsZero on bool if false
+				if !IsZero(m.RepositoryOptions.InsecureSkipTLSVerify) {
+					cd.ChartSkipTLSVerify = m.RepositoryOptions.InsecureSkipTLSVerify
+				}
+				if !IsZero(m.RepositoryOptions.CAFile) {
+					u, err := url.Parse(*m.RepositoryOptions.CAFile)
+					if err != nil {
+						return nil, genericError("Process url", err)
+					}
+					switch {
+					case strings.ToLower(u.Scheme) == "s3":
+						bucket := u.Host
+						key := strings.TrimLeft(u.Path, "/")
+						region, err := getBucketRegion(c.AWSClients.S3Client(nil, nil), bucket)
+						if err != nil {
+							return nil, err
+						}
+						err = downloadS3(c.AWSClients.S3Client(region, nil), bucket, key, caLocalPath)
+						if err != nil {
+							return nil, err
+						}
+						cd.ChartLocalCA = aws.Bool(true)
+					default:
+						log.Printf("Unsupported CAFile format: %s must be S3 path. Ignoring CAFile...", *m.RepositoryOptions.CAFile)
+					}
+				}
 			}
 			cd.ChartType = aws.String("Remote")
 			cd.Chart = aws.String(fmt.Sprintf("%s/%s", *cd.ChartRepo, *cd.ChartName))
@@ -680,4 +717,8 @@ func popLastKnownError(name string) {
 			LastKnownErrors = LastKnownErrors[:len(LastKnownErrors)-1]
 		}
 	}
+}
+
+func checkIfS3URI(uri string) {
+
 }

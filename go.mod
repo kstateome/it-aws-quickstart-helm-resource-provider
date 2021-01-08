@@ -5,11 +5,12 @@ go 1.13
 require (
 	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
 	github.com/aws/aws-lambda-go v1.22.0
-	github.com/aws/aws-sdk-go v1.36.21
+	github.com/aws/aws-sdk-go v1.35.30
 	github.com/gofrs/flock v0.8.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6 // indirect
 	helm.sh/helm/v3 v3.4.2
 	k8s.io/api v0.19.4
 	k8s.io/apiextensions-apiserver v0.19.4

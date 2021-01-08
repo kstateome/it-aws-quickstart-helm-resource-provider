@@ -316,7 +316,7 @@ func TestHelmInstallWrapper(t *testing.T) {
 			ID: aws.String("function1"),
 		},
 	}
-	event.Inputs.ChartDetails, _ = getChartDetails(&Model{Chart: aws.String(testServer.URL + "/test.tgz")})
+	event.Inputs.ChartDetails, _ = c.getChartDetails(&Model{Chart: aws.String(testServer.URL + "/test.tgz")})
 	tests := []bool{true, false}
 	functionName := aws.String("function1")
 	for _, d := range tests {
@@ -345,7 +345,7 @@ func TestHelmUpgradeWrapper(t *testing.T) {
 			ValueOpts: map[string]interface{}{},
 		},
 	}
-	event.Inputs.ChartDetails, _ = getChartDetails(&Model{Chart: aws.String(testServer.URL + "/test.tgz")})
+	event.Inputs.ChartDetails, _ = c.getChartDetails(&Model{Chart: aws.String(testServer.URL + "/test.tgz")})
 	name := aws.String("one")
 	tests := []bool{true, false}
 	functionName := aws.String("function1")

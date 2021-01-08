@@ -33,6 +33,7 @@ const (
 	HelmDriver           = "secret"
 	stableRepoURL        = "https://charts.helm.sh/stable"
 	chartLocalPath       = "/tmp/chart.tgz"
+	caLocalPath          = "/tmp/ca.pem"
 )
 
 type HelmStatusData struct {
@@ -76,7 +77,7 @@ func helmClientInvoke(namespace *string, getter genericclioptions.RESTClientGett
 }
 
 // addHelmRepoUpdate Add the repo and fire repo update
-func addHelmRepoUpdate(name string, url string, settings *cli.EnvSettings) error {
+func addHelmRepoUpdate(name string, url string, username string, password string, tlsverify bool, localCA bool, settings *cli.EnvSettings) error {
 	file := settings.RepositoryConfig
 	os.Remove(file)
 	//Ensure the file directory exists as it is required for file locking
@@ -108,9 +109,20 @@ func addHelmRepoUpdate(name string, url string, settings *cli.EnvSettings) error
 	}
 
 	c := repo.Entry{
-		Name: name,
-		URL:  url,
+		Name:                  name,
+		URL:                   url,
+		InsecureSkipTLSverify: tlsverify,
 	}
+
+	if !IsZero(username) && !IsZero(password) {
+		c.Username = username
+		c.Password = password
+	}
+
+	if localCA {
+		c.CAFile = caLocalPath
+	}
+
 	r, err := repo.NewChartRepository(&c, getter.All(settings))
 	if err != nil {
 		return genericError("Adding helm repository", err)
@@ -183,13 +195,21 @@ func (c *Clients) HelmInstall(config *Config, values map[string]interface{}, cha
 		if chart.ChartVersion != nil {
 			client.Version = *chart.ChartVersion
 		}
-		err = addHelmRepoUpdate(*chart.ChartRepo, *chart.ChartRepoURL, c.Settings)
+		err = addHelmRepoUpdate(aws.StringValue(chart.ChartRepo), aws.StringValue(chart.ChartRepoURL), aws.StringValue(chart.ChartUsername), aws.StringValue(chart.ChartPassword), aws.BoolValue(chart.ChartSkipTLSVerify), aws.BoolValue(chart.ChartLocalCA), c.Settings)
 		if err != nil {
-			return genericError("Helm Upgrade", err)
+			return genericError("Helm Install", err)
+		}
+		client.ChartPathOptions.InsecureSkipTLSverify = *chart.ChartSkipTLSVerify
+		if !IsZero(chart.ChartUsername) && !IsZero(chart.ChartPassword) {
+			client.ChartPathOptions.Username = *chart.ChartUsername
+			client.ChartPathOptions.Password = *chart.ChartPassword
+		}
+		if *chart.ChartLocalCA {
+			client.ChartPathOptions.CaFile = caLocalPath
 		}
 		cp, err = client.ChartPathOptions.LocateChart(*chart.Chart, c.Settings)
 		if err != nil {
-			return genericError("Helm Upgrade", err)
+			return genericError("Helm Install", err)
 		}
 	default:
 		err = c.downloadChart(*chart.ChartPath, chartLocalPath)
@@ -214,6 +234,7 @@ func (c *Clients) HelmInstall(config *Config, values map[string]interface{}, cha
 					Getters:          p,
 					RepositoryConfig: c.Settings.RepositoryConfig,
 					RepositoryCache:  c.Settings.RepositoryCache,
+					Debug:            true,
 				}
 				if err := man.Update(); err != nil {
 					return genericError("Helm install", err)
@@ -334,9 +355,17 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 		if chart.ChartVersion != nil {
 			client.Version = *chart.ChartVersion
 		}
-		err = addHelmRepoUpdate(*chart.ChartRepo, *chart.ChartRepoURL, c.Settings)
+		err = addHelmRepoUpdate(aws.StringValue(chart.ChartRepo), aws.StringValue(chart.ChartRepoURL), aws.StringValue(chart.ChartUsername), aws.StringValue(chart.ChartPassword), aws.BoolValue(chart.ChartSkipTLSVerify), aws.BoolValue(chart.ChartLocalCA), c.Settings)
 		if err != nil {
 			return genericError("Helm Upgrade", err)
+		}
+		client.ChartPathOptions.InsecureSkipTLSverify = *chart.ChartSkipTLSVerify
+		if !IsZero(chart.ChartUsername) && !IsZero(chart.ChartPassword) {
+			client.ChartPathOptions.Username = *chart.ChartUsername
+			client.ChartPathOptions.Password = *chart.ChartPassword
+		}
+		if *chart.ChartLocalCA {
+			client.ChartPathOptions.CaFile = caLocalPath
 		}
 		cp, err = client.ChartPathOptions.LocateChart(*chart.Chart, c.Settings)
 		if err != nil {
@@ -373,11 +402,13 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error) {
 	status, staterr := c.HelmStatus(name)
 	if staterr != nil {
+		log.Print(staterr)
 		re := regexp.MustCompile(`not found`)
 		if re.MatchString(staterr.Error()) {
 			log.Printf("Release not found..")
 			return ReleaseNotFound, nil
 		}
+		return ReleaseError, staterr
 	}
 
 	switch status.Status {

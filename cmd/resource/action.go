@@ -49,7 +49,7 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 	e.Inputs.Config = new(Config)
 	e.Action = action
 	e.Model = currentModel
-	e.Inputs.ChartDetails, err = getChartDetails(currentModel)
+	e.Inputs.ChartDetails, err = client.getChartDetails(currentModel)
 	if err != nil {
 		return makeEvent(currentModel, NoStage, err)
 	}

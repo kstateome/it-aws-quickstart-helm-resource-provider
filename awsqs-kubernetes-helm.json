@@ -25,6 +25,28 @@
             "description": "Repository url. Defaults to kubernetes-charts.storage.googleapis.com",
             "type": "string"
         },
+        "RepositoryOptions": {
+            "description": "Extra options for repository",
+            "type": "object",
+            "properties": {
+                "Username": {
+                    "description": "Chart repository username",
+                    "type": "string"
+                },
+                "Password": {
+                    "description": "Chart repository password",
+                    "type": "string"
+                },
+                "CAFile": {
+                    "description": "Verify certificates of HTTPS-enabled servers using this CA bundle from S3",
+                    "type": "string"
+                },
+                "InsecureSkipTLSVerify": {
+                    "description": "Skip TLS certificate checks for the repository",
+                    "type": "boolean"
+                }
+            }
+        },
         "Chart": {
             "description": "Chart name",
             "type": "string"

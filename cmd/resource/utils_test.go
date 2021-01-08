@@ -112,11 +112,13 @@ func TestGetChartDetails(t *testing.T) {
 				Repository: aws.String("test.com"),
 			},
 			expectedChart: &Chart{
-				Chart:        aws.String("stable/test"),
-				ChartRepo:    aws.String("stable"),
-				ChartName:    aws.String("test"),
-				ChartType:    aws.String("Remote"),
-				ChartRepoURL: aws.String("test.com"),
+				Chart:              aws.String("stable/test"),
+				ChartRepo:          aws.String("stable"),
+				ChartName:          aws.String("test"),
+				ChartType:          aws.String("Remote"),
+				ChartRepoURL:       aws.String("test.com"),
+				ChartSkipTLSVerify: aws.Bool(false),
+				ChartLocalCA:       aws.Bool(false),
 			},
 			expectedError: nil,
 		},
@@ -133,12 +135,14 @@ func TestGetChartDetails(t *testing.T) {
 				Version: aws.String("1.0.0"),
 			},
 			expectedChart: &Chart{
-				Chart:        aws.String("stable/test"),
-				ChartRepo:    aws.String("stable"),
-				ChartName:    aws.String("test"),
-				ChartType:    aws.String("Remote"),
-				ChartRepoURL: aws.String("https://charts.helm.sh/stable"),
-				ChartVersion: aws.String("1.0.0"),
+				Chart:              aws.String("stable/test"),
+				ChartRepo:          aws.String("stable"),
+				ChartName:          aws.String("test"),
+				ChartType:          aws.String("Remote"),
+				ChartRepoURL:       aws.String("https://charts.helm.sh/stable"),
+				ChartVersion:       aws.String("1.0.0"),
+				ChartSkipTLSVerify: aws.Bool(false),
+				ChartLocalCA:       aws.Bool(false),
 			},
 			expectedError: nil,
 		},
@@ -154,10 +158,54 @@ func TestGetChartDetails(t *testing.T) {
 				ChartRepoURL: aws.String("https://charts.helm.sh/stable"),
 			},
 		},
+		"test5": {
+			m: &Model{
+				Chart:      aws.String("stable/test"),
+				Repository: aws.String("test.com"),
+				RepositoryOptions: &RepositoryOptions{
+					Username:              aws.String("test"),
+					Password:              aws.String("tester"),
+					InsecureSkipTLSVerify: aws.Bool(true),
+					CAFile:                aws.String("s3://buctket/key"),
+				},
+			},
+			expectedChart: &Chart{
+				Chart:              aws.String("stable/test"),
+				ChartRepo:          aws.String("stable"),
+				ChartName:          aws.String("test"),
+				ChartType:          aws.String("Remote"),
+				ChartRepoURL:       aws.String("test.com"),
+				ChartUsername:      aws.String("test"),
+				ChartPassword:      aws.String("tester"),
+				ChartSkipTLSVerify: aws.Bool(true),
+				ChartLocalCA:       aws.Bool(true),
+			},
+			expectedError: nil,
+		},
+		"test6": {
+			m: &Model{
+				Chart:      aws.String("stable/test"),
+				Repository: aws.String("test.com"),
+				RepositoryOptions: &RepositoryOptions{
+					Username: aws.String("test"),
+				},
+			},
+			expectedChart: &Chart{
+				Chart:              aws.String("stable/test"),
+				ChartRepo:          aws.String("stable"),
+				ChartName:          aws.String("test"),
+				ChartType:          aws.String("Remote"),
+				ChartRepoURL:       aws.String("test.com"),
+				ChartSkipTLSVerify: aws.Bool(false),
+				ChartLocalCA:       aws.Bool(false),
+			},
+			expectedError: nil,
+		},
 	}
+	c := NewMockClient(t, nil)
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
-			result, err := getChartDetails(d.m)
+			result, err := c.getChartDetails(d.m)
 			if err != nil {
 				assert.EqualError(t, err, aws.StringValue(d.expectedError))
 			} else {

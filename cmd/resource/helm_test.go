@@ -25,23 +25,35 @@ func TestAddHelmRepoUpdate(t *testing.T) {
 	tests := map[string]struct {
 		name        string
 		url         string
+		username    string
+		password    string
+		tlsVerify   bool
+		localCA     bool
 		eCount      int
 		expectedErr *string
 	}{
 		"StableRepo": {
-			name:   "stable",
-			url:    "https://charts.helm.sh/stable",
-			eCount: 1,
+			name:      "stable",
+			url:       "https://charts.helm.sh/stable",
+			username:  "",
+			password:  "",
+			tlsVerify: true,
+			localCA:   false,
+			eCount:    1,
 		},
 		"WrongRepo": {
 			name:        "stable",
 			url:         "https://test.com",
+			username:    "",
+			password:    "",
+			tlsVerify:   true,
+			localCA:     false,
 			expectedErr: aws.String("is not a valid chart repository"),
 		},
 	}
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := addHelmRepoUpdate(d.name, d.url, c.Settings)
+			err := addHelmRepoUpdate(d.name, d.url, d.username, d.password, d.tlsVerify, d.localCA, c.Settings)
 			if err != nil {
 				assert.Contains(t, err.Error(), aws.StringValue(d.expectedErr))
 			} else {
@@ -67,7 +79,7 @@ func TestHelmInstall(t *testing.T) {
 		"HTTPRepo": {
 			m: &Model{Chart: aws.String(testServer.URL + "/test.tgz")},
 			config: &Config{
-				Name:      aws.String("HTTPRepo"),
+				Name:      aws.String("httprepo"),
 				Namespace: aws.String("default"),
 			},
 		},
@@ -82,7 +94,7 @@ func TestHelmInstall(t *testing.T) {
 		"RemoteRepo": {
 			m: &Model{Chart: aws.String("stable/coscale")},
 			config: &Config{
-				Name:      aws.String("RemoteRepo"),
+				Name:      aws.String("remoterepo"),
 				Namespace: aws.String("default"),
 			},
 		},
@@ -97,7 +109,7 @@ func TestHelmInstall(t *testing.T) {
 		"Dependency": {
 			m: &Model{Chart: aws.String(testServer.URL + "/dep-0.1.0.tgz")},
 			config: &Config{
-				Name:      aws.String("Dependency"),
+				Name:      aws.String("dependency"),
 				Namespace: aws.String("default"),
 			},
 		},
@@ -105,7 +117,7 @@ func TestHelmInstall(t *testing.T) {
 
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
-			ch, _ := getChartDetails(d.m)
+			ch, _ := c.getChartDetails(d.m)
 			err := c.HelmInstall(d.config, d.vals, ch, "mock-id")
 			if err != nil {
 				assert.Contains(t, err.Error(), aws.StringValue(d.expectedErr))
@@ -259,7 +271,7 @@ func TestHelmUpgrade(t *testing.T) {
 
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
-			ch, _ := getChartDetails(d.m)
+			ch, _ := c.getChartDetails(d.m)
 			err := c.HelmUpgrade(aws.StringValue(d.config.Name), d.config, d.vals, ch)
 			if err != nil {
 				assert.Contains(t, err.Error(), aws.StringValue(d.expectedErr))
