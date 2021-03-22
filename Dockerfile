@@ -8,8 +8,8 @@ COPY . /build
 
 WORKDIR /build
 
-RUN go mod download
+RUN GOPROXY=direct go mod download
 
-RUN make -f Makefile.package package
+RUN GOPROXY=direct make -f Makefile.package package
 
 CMD mkdir -p /output/ && mv /build/awsqs-kubernetes-helm.zip /output/
