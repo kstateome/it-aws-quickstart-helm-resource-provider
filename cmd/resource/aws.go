@@ -247,7 +247,7 @@ func getVpcConfig(ekssvc EKSAPI, ec2svc EC2API, model *Model) (*VPCConfiguration
 		return nil, err
 	}
 	if IsZero(subnets) {
-		return nil, fmt.Errorf("no subnets with NAT Gateway found for the cluster %s, use VPCConfiguration to specify VPC settings", aws.StringValue(model.ClusterID))
+		return nil, fmt.Errorf("no subnets with NAT/Transit Gateway found for the cluster %s, use VPCConfiguration to specify VPC settings", aws.StringValue(model.ClusterID))
 	}
 	log.Printf("Using Subnets: %v, SecurityGroups: %v", aws.StringValueSlice(subnets), aws.StringValueSlice(resp.resourcesVpcConfig.SecurityGroupIds))
 
@@ -299,6 +299,10 @@ func filterNattedSubnets(ec2client ec2iface.EC2API, subnets []*string) (filtered
 		}
 		for _, route := range resp.RouteTables[0].Routes {
 			if route.NatGatewayId != nil {
+				filtered = append(filtered, subnet.SubnetId)
+			}
+
+			if route.TransitGatewayId != nil {
 				filtered = append(filtered, subnet.SubnetId)
 			}
 		}
