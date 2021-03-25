@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
-	"github.com/aws/aws-sdk-go/aws"
 	"helm.sh/helm/v3/pkg/helmpath/xdg"
 )
 
@@ -38,16 +37,15 @@ func Create(req handler.Request, _ *Model, currentModel *Model) (handler.Progres
 		return checkReleaseStatus(req.Session, currentModel, CompleteStage), nil
 	default:
 		log.Println("Failed to identify stage.")
-		return makeEvent(currentModel, NoStage, fmt.Errorf("unhandled stage %s", stage)), nil
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", stage))), nil
 	}
 }
 
 // Read handles the Read event from the CloudFormation service.
 func Read(req handler.Request, _ *Model, currentModel *Model) (handler.ProgressEvent, error) {
-	var err error
 	data, err := DecodeID(currentModel.ID)
 	if err != nil {
-		return handler.ProgressEvent{}, err
+		return makeEvent(nil, NoStage, NewError(ErrCodeInvalidException, err.Error())), nil
 	}
 	// Load model with decode values of ID.
 	currentModel.Name = data.Name
@@ -58,12 +56,12 @@ func Read(req handler.Request, _ *Model, currentModel *Model) (handler.ProgressE
 
 	client, err := NewClients(currentModel.ClusterID, currentModel.KubeConfig, data.Namespace, req.Session, currentModel.RoleArn, nil, currentModel.VPCConfiguration)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err), nil
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error())), nil
 	}
 	if IsZero(currentModel.VPCConfiguration) && currentModel.ClusterID != nil {
 		currentModel.VPCConfiguration, err = getVpcConfig(client.AWSClients.EKSClient(nil, nil), client.AWSClients.EC2Client(nil, nil), currentModel)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err), nil
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error())), nil
 		}
 		// generate lambda resource when auto detected vpc configs
 		if !IsZero(currentModel.VPCConfiguration) {
@@ -79,23 +77,26 @@ func Read(req handler.Request, _ *Model, currentModel *Model) (handler.ProgressE
 		vpc = true
 		e.Kubeconfig, err = getLocalKubeConfig()
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err), nil
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeKubeException, err.Error())), nil
 		}
 		u, err := client.initializeLambda(client.LambdaResource)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err), nil
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeLambdaException, err.Error())), nil
 		}
 		if !u {
-			return makeEvent(currentModel, NoStage, fmt.Errorf("vpc connector didn't stabilize in time")), nil
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, "vpc connector didn't stabilize in time")), nil
 		}
 	}
 	e.Action = CheckReleaseAction
-	s, err := client.helmStatusWrapper(currentModel.Name, e, client.LambdaResource.functionName, vpc)
+	_, err = client.helmStatusWrapper(currentModel.Name, e, client.LambdaResource.functionName, vpc)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err), nil
+		if err.Error() == ErrCodeNotFound {
+			return makeEvent(nil, NoStage, NewError(ErrCodeNotFound, err.Error())), nil
+		}
+		return makeEvent(nil, NoStage, NewError(ErrCodeHelmActionException, err.Error())), nil
 	}
-	currentModel.Chart = aws.String(s.ChartName)
-	currentModel.Version = aws.String(s.ChartVersion)
+	//currentModel.Chart = aws.String(s.ChartName)
+	//currentModel.Version = aws.String(s.ChartVersion)
 	/* Disable fetching resources created by helm
 	e.ReleaseData = &ReleaseData{
 		Name:      aws.StringValue(data.Name),
@@ -127,7 +128,7 @@ func Update(req handler.Request, _ *Model, currentModel *Model) (handler.Progres
 		return checkReleaseStatus(req.Session, currentModel, CompleteStage), nil
 	default:
 		log.Println("Failed to identify stage.")
-		return makeEvent(currentModel, NoStage, fmt.Errorf("unhandled stage %s", stage)), nil
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", stage))), nil
 	}
 }
 
@@ -141,7 +142,7 @@ func Delete(req handler.Request, _ *Model, currentModel *Model) (handler.Progres
 		return initialize(req.Session, currentModel, UninstallReleaseAction), nil
 	default:
 		log.Println("Failed to identify stage.")
-		return makeEvent(currentModel, NoStage, fmt.Errorf("unhandled stage %s", stage)), nil
+		return makeEvent(nil, NoStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", stage))), nil
 	}
 }
 

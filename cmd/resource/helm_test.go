@@ -163,7 +163,7 @@ func TestHelmStatus(t *testing.T) {
 		},
 		"NonExt": {
 			name:        "nonext",
-			expectedErr: aws.String("not found"),
+			expectedErr: aws.String("NotFound"),
 		},
 	}
 	for name, d := range tests {

@@ -28,6 +28,7 @@
         "RepositoryOptions": {
             "description": "Extra options for repository",
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "Username": {
                     "description": "Chart repository username",
@@ -62,6 +63,7 @@
         "Values": {
             "description": "Custom Values can optionally be specified",
             "type": "object",
+            "additionalProperties": false,
             "patternProperties": {
                 "^.+$": {"type": "string"}
             }
@@ -94,6 +96,7 @@
         "VPCConfiguration": {
             "type": "object",
             "description": "For network connectivity to Cluster inside VPC",
+            "additionalProperties": false,
             "properties": {
                 "SecurityGroupIds": {
                     "description": "Specify one or more security groups",
@@ -128,6 +131,9 @@
         "/properties/Namespace",
         "/properties/ClusterID"
     ],
+    "writeOnlyProperties": [
+        "/properties/RepositoryOptions"
+    ],
     "handlers": {
         "create": {
             "permissions": [
@@ -143,12 +149,20 @@
                 "iam:GetPolicy",
                 "iam:GetPolicyVersion",
                 "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DeleteNetworkInterface",
-                "ec2:Describe*",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
-                "lambda:*"
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:InvokeFunction",
+                "lambda:CreateFunction",
+                "lambda:UpdateFunctionCode"
             ]
         },
         "read": {
@@ -165,12 +179,20 @@
                 "iam:GetPolicy",
                 "iam:GetPolicyVersion",
                 "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DeleteNetworkInterface",
-                "ec2:Describe*",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
-                "lambda:*"
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:InvokeFunction",
+                "lambda:CreateFunction",
+                "lambda:UpdateFunctionCode"
             ]
         },
         "update": {
@@ -187,12 +209,20 @@
                 "iam:GetPolicy",
                 "iam:GetPolicyVersion",
                 "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DeleteNetworkInterface",
-                "ec2:Describe*",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
-                "lambda:*"
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:InvokeFunction",
+                "lambda:CreateFunction",
+                "lambda:UpdateFunctionCode"
             ]
         },
         "delete": {
@@ -209,12 +239,20 @@
                 "iam:GetPolicy",
                 "iam:GetPolicyVersion",
                 "ec2:CreateNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
                 "ec2:DeleteNetworkInterface",
-                "ec2:Describe*",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeSecurityGroups",
                 "logs:CreateLogGroup",
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
-                "lambda:*"
+                "lambda:UpdateFunctionConfiguration",
+                "lambda:DeleteFunction",
+                "lambda:GetFunction",
+                "lambda:InvokeFunction",
+                "lambda:CreateFunction",
+                "lambda:UpdateFunctionCode"
             ]
         }
     }

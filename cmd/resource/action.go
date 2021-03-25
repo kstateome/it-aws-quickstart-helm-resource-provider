@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -32,12 +31,12 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 	var err error
 	client, err := NewClients(currentModel.ClusterID, currentModel.KubeConfig, currentModel.Namespace, session, currentModel.RoleArn, nil, currentModel.VPCConfiguration)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err)
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 	}
 	if IsZero(currentModel.VPCConfiguration) && currentModel.ClusterID != nil {
 		currentModel.VPCConfiguration, err = getVpcConfig(client.AWSClients.EKSClient(nil, nil), client.AWSClients.EC2Client(nil, nil), currentModel)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 		// generate lambda resource when auto detected vpc configs
 		if !IsZero(currentModel.VPCConfiguration) {
@@ -51,7 +50,7 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 	e.Model = currentModel
 	e.Inputs.ChartDetails, err = client.getChartDetails(currentModel)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err)
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 	}
 	e.Inputs.Config.Name = getReleaseName(currentModel.Name, e.Inputs.ChartDetails.ChartName)
 	currentModel.Name = e.Inputs.Config.Name
@@ -59,7 +58,7 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 	if currentModel.ID == nil {
 		currentModel.ID, err = generateID(currentModel, *e.Inputs.Config.Name, aws.StringValue(session.Config.Region), *e.Inputs.Config.Namespace)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 		return makeEvent(currentModel, InitStage, nil)
 	}
@@ -67,11 +66,11 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		vpc = true
 		e.Kubeconfig, err = getLocalKubeConfig()
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeKubeException, err.Error()))
 		}
 		u, err := client.initializeLambda(client.LambdaResource)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeLambdaException, err.Error()))
 		}
 		if !u {
 			return makeEvent(currentModel, LambdaStabilize, nil)
@@ -81,46 +80,56 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 	case InstallReleaseAction:
 		e.Inputs.ValueOpts, err = client.processValues(currentModel)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 		data, err := DecodeID(currentModel.ID)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 		currentModel.Name = data.Name
 		e.Model = currentModel
 		err = client.helmInstallWrapper(e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 		}
 		return makeEvent(currentModel, ReleaseStabilize, nil)
 	case UpdateReleaseAction:
 		e.Inputs.ValueOpts, err = client.processValues(currentModel)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 		data, err := DecodeID(currentModel.ID)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
+		// check if release exists before upgrade
+		e.Action = CheckReleaseAction
+		_, err = client.helmStatusWrapper(currentModel.Name, e, client.LambdaResource.functionName, vpc)
+		if err != nil {
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeNotFound, err.Error()))
+		}
+		e.Action = UpdateReleaseAction
 		err = client.helmUpgradeWrapper(data.Name, e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 		}
 		currentModel.Name = data.Name
 		return makeEvent(currentModel, ReleaseStabilize, nil)
 	case UninstallReleaseAction:
 		data, err := DecodeID(currentModel.ID)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(nil, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 		}
 		err = client.helmDeleteWrapper(data.Name, e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			if err.Error() == ErrCodeNotFound {
+				return makeEvent(nil, NoStage, NewError(ErrCodeNotFound, err.Error()))
+			}
+			return makeEvent(nil, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 		}
 		return client.lambdaDestroy(currentModel)
 	}
-	return makeEvent(currentModel, NoStage, fmt.Errorf("unhandled stage %s", action))
+	return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", action)))
 }
 
 func checkReleaseStatus(session *session.Session, currentModel *Model, successStage Stage) handler.ProgressEvent {
@@ -128,12 +137,12 @@ func checkReleaseStatus(session *session.Session, currentModel *Model, successSt
 	var err error
 	client, err := NewClients(currentModel.ClusterID, currentModel.KubeConfig, currentModel.Namespace, session, currentModel.RoleArn, nil, currentModel.VPCConfiguration)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err)
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 	}
 	if IsZero(currentModel.VPCConfiguration) && currentModel.ClusterID != nil {
 		currentModel.VPCConfiguration, err = getVpcConfig(client.AWSClients.EKSClient(nil, nil), client.AWSClients.EC2Client(nil, nil), currentModel)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
 	}
 	e := &Event{}
@@ -142,11 +151,11 @@ func checkReleaseStatus(session *session.Session, currentModel *Model, successSt
 		vpc = true
 		e.Kubeconfig, err = getLocalKubeConfig()
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeKubeException, err.Error()))
 		}
 		u, err := client.initializeLambda(client.LambdaResource)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeLambdaException, err.Error()))
 		}
 		if !u {
 			return makeEvent(currentModel, LambdaStabilize, nil)
@@ -155,7 +164,7 @@ func checkReleaseStatus(session *session.Session, currentModel *Model, successSt
 	e.Action = CheckReleaseAction
 	s, err := client.helmStatusWrapper(currentModel.Name, e, client.LambdaResource.functionName, vpc)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err)
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 	}
 	switch s.Status {
 	case release.StatusDeployed:
@@ -168,7 +177,7 @@ func checkReleaseStatus(session *session.Session, currentModel *Model, successSt
 		e.Action = GetPendingAction
 		pending, err := client.kubePendingWrapper(e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, err)
+			return makeEvent(currentModel, NoStage, NewError(ErrCodeKubeException, err.Error()))
 		}
 		if pending {
 			log.Printf("Release %s have pending resources", e.ReleaseData.Name)
@@ -181,21 +190,21 @@ func checkReleaseStatus(session *session.Session, currentModel *Model, successSt
 		return makeEvent(currentModel, ReleaseStabilize, nil)
 	default:
 		pushLastKnownError(fmt.Sprintf("Release %s/%s in %s state", s.Namespace, *currentModel.Name, s.Status))
-		return makeEvent(currentModel, NoStage, errors.New("release failed"))
+		return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, "release failed"))
 
 	}
 }
 
 func (c *Clients) lambdaDestroy(currentModel *Model) handler.ProgressEvent {
 	if IsZero(currentModel.VPCConfiguration) {
-		return makeEvent(currentModel, CompleteStage, nil)
+		return makeEvent(nil, CompleteStage, nil)
 	}
 	l := newLambdaResource(nil, currentModel.ClusterID, currentModel.KubeConfig, currentModel.VPCConfiguration)
 	err := deleteFunction(c.AWSClients.LambdaClient(nil, nil), l.functionName)
 	if err != nil {
-		return makeEvent(currentModel, NoStage, err)
+		return makeEvent(nil, NoStage, NewError(ErrCodeLambdaException, err.Error()))
 	}
-	return makeEvent(currentModel, CompleteStage, nil)
+	return makeEvent(nil, CompleteStage, nil)
 }
 
 func (c *Clients) initializeLambda(l *lambdaResource) (bool, error) {

@@ -438,7 +438,7 @@ func TestGetVpcConfig(t *testing.T) {
 			},
 		},
 	}
-	eErr := "no subnets with NAT Gateway found"
+	eErr := "no subnets with NAT/Transit Gateway found"
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
 			//d.m.VPCConfiguration = nil

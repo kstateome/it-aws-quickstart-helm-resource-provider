@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -42,13 +41,13 @@ func TestInitialize(t *testing.T) {
 	}{
 		"InstallWithVPC": {
 			action:    InstallReleaseAction,
-			name:      "Test",
+			name:      "test",
 			vpc:       true,
 			nextStage: ReleaseStabilize,
 		},
 		"InstallWithOutVPC": {
 			action:    InstallReleaseAction,
-			name:      "Test",
+			name:      "test",
 			vpc:       false,
 			nextStage: ReleaseStabilize,
 		},
@@ -104,9 +103,12 @@ func TestInitialize(t *testing.T) {
 			}
 			m.Name = aws.String(d.name)
 			m.ID, _ = generateID(m, d.name, "eu-west-1", "default")
-			if name == "Unknown" {
-				eRes = makeEvent(m, d.nextStage, fmt.Errorf("unhandled stage %s", d.action))
-			} else {
+			switch name {
+			case "Unknown":
+				eRes = makeEvent(m, d.nextStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", d.action)))
+			case "UninstallsWithOutVPC", "UninstallWithVPC":
+				eRes = makeEvent(nil, d.nextStage, nil)
+			default:
 				eRes = makeEvent(m, d.nextStage, nil)
 			}
 			res := initialize(MockSession, m, d.action)
@@ -186,7 +188,7 @@ func TestCheckReleaseStatus(t *testing.T) {
 			m.Name = d.name
 			switch name {
 			case "Unknown":
-				eRes = makeEvent(m, d.nextStage, errors.New("release failed"))
+				eRes = makeEvent(m, d.nextStage, NewError(ErrCodeHelmActionException, "release failed"))
 			default:
 				eRes = makeEvent(m, d.nextStage, nil)
 			}
@@ -203,7 +205,7 @@ func TestLambdaDestroy(t *testing.T) {
 			SubnetIds:        []string{"subnet-1"},
 		},
 	}
-	expected := handler.ProgressEvent{OperationStatus: "SUCCESS", HandlerErrorCode: "", Message: "", CallbackContext: map[string]interface{}(nil), CallbackDelaySeconds: 0, ResourceModel: m, ResourceModels: []interface{}(nil), NextToken: ""}
+	expected := makeEvent(nil, CompleteStage, nil)
 	c := NewMockClient(t, m)
 	result := c.lambdaDestroy(m)
 	assert.EqualValues(t, expected, result)

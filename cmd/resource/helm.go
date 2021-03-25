@@ -268,7 +268,7 @@ func (c *Clients) HelmUninstall(name string) error {
 	if err != nil {
 		if re.MatchString(err.Error()) {
 			log.Printf("Release not found..")
-			return nil
+			return fmt.Errorf(ErrCodeNotFound)
 		}
 		return genericError("Helm Uninstall", err)
 	}
@@ -285,7 +285,12 @@ func (c *Clients) HelmStatus(name string) (*HelmStatusData, error) {
 	h := &HelmStatusData{}
 	client := action.NewStatus(c.HelmClient)
 	res, err := client.Run(name)
+	re := regexp.MustCompile(`not found`)
 	if err != nil {
+		if re.MatchString(err.Error()) {
+			log.Printf("Release not found..")
+			return nil, fmt.Errorf(ErrCodeNotFound)
+		}
 		return nil, err
 	}
 	if res != nil {
@@ -403,8 +408,7 @@ func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error
 	status, staterr := c.HelmStatus(name)
 	if staterr != nil {
 		log.Print(staterr)
-		re := regexp.MustCompile(`not found`)
-		if re.MatchString(staterr.Error()) {
+		if staterr.Error() == ErrCodeNotFound {
 			log.Printf("Release not found..")
 			return ReleaseNotFound, nil
 		}

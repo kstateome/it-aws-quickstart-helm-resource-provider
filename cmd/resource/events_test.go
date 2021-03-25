@@ -26,15 +26,22 @@ func validateMessage(t *testing.T, h handler.ProgressEvent, e string) {
 	assert.EqualValues(t, e, h.Message)
 }
 
+func validateHCode(t *testing.T, h handler.ProgressEvent, e string) {
+	t.Helper()
+	assert.EqualValues(t, e, h.HandlerErrorCode)
+}
+
 func TestErrorEvent(t *testing.T) {
 	expectedMessage := "Test Error"
 	expectedStatus := handler.Failed
+	expectedHCode := ErrCodeInvalidException
 	m := &Model{
 		Name: aws.String("Test"),
 	}
-	result := errorEvent(m, fmt.Errorf("Test Error"))
+	result := errorEvent(m, NewError(ErrCodeInvalidException, "Test Error"))
 	validateMessage(t, result, expectedMessage)
 	validateOStatus(t, result, expectedStatus)
+	validateHCode(t, result, expectedHCode)
 }
 
 func TestSuccessEvent(t *testing.T) {
@@ -71,7 +78,7 @@ func TestMakeEvent(t *testing.T) {
 	tests := map[string]struct {
 		m               *Model
 		stage           Stage
-		err             error
+		err             *Error
 		expectedContext map[string]interface{}
 		expectedStatus  handler.Status
 		expectedMessage string
@@ -95,7 +102,7 @@ func TestMakeEvent(t *testing.T) {
 				Name: aws.String("Test"),
 			},
 			stage:           ReleaseStabilize,
-			err:             fmt.Errorf("Test Error"),
+			err:             NewError(ErrCodeInvalidException, "Test Error"),
 			expectedMessage: "Test Error",
 			expectedStatus:  handler.Failed,
 			expectedContext: nil,

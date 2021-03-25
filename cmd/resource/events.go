@@ -14,12 +14,14 @@ const callbackDelaySeconds = 30
 
 var LastKnownErrors []string
 
-func errorEvent(model *Model, err error) handler.ProgressEvent {
+func errorEvent(model *Model, err *Error) handler.ProgressEvent {
 	log.Printf("Returning ERROR...")
+	log.Printf("HandlerErrorCode: %s, Message: %s", err.Code(), err.Message())
 	return handler.ProgressEvent{
-		OperationStatus: handler.Failed,
-		Message:         err.Error(),
-		ResourceModel:   model,
+		OperationStatus:  handler.Failed,
+		HandlerErrorCode: err.Code(),
+		Message:          err.Message(),
+		ResourceModel:    model,
 	}
 }
 
@@ -35,8 +37,8 @@ func inProgressEvent(model *Model, stage Stage) handler.ProgressEvent {
 	log.Printf("Returning IN_PROGRESS next stage %v...\n", stage)
 	return handler.ProgressEvent{
 		OperationStatus: handler.InProgress,
-		ResourceModel:   model,
 		Message:         fmt.Sprintf("%v in progress\n", stage),
+		ResourceModel:   model,
 		CallbackContext: map[string]interface{}{
 			"Stage":     stage,
 			"StartTime": os.Getenv("StartTime"),
@@ -46,11 +48,13 @@ func inProgressEvent(model *Model, stage Stage) handler.ProgressEvent {
 	}
 }
 
-func makeEvent(model *Model, nextStage Stage, err error) handler.ProgressEvent {
-	timeout := checkTimeOut(os.Getenv("StartTime"), model.TimeOut)
-	if timeout && nextStage != CompleteStage {
-		errorString := fmt.Sprintf("resource creation timed out\n, LastKnownErrors: %s", strings.Join(LastKnownErrors, "\n "))
-		return errorEvent(nil, fmt.Errorf(errorString))
+func makeEvent(model *Model, nextStage Stage, err *Error) handler.ProgressEvent {
+	if model != nil {
+		timeout := checkTimeOut(os.Getenv("StartTime"), model.TimeOut)
+		if timeout && nextStage != CompleteStage {
+			errorString := fmt.Sprintf("resource creation timed out\n, LastKnownErrors: %s", strings.Join(LastKnownErrors, "\n "))
+			return errorEvent(nil, NewError(ErrCodeTimeOut, errorString))
+		}
 	}
 	if err != nil {
 		return errorEvent(model, err)
