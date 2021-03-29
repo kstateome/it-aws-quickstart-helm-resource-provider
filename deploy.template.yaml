@@ -38,6 +38,7 @@ Resources:
                   - "ec2:DeleteNetworkInterface"
                   - "ec2:DescribeVpcs"
                   - "ec2:DescribeSubnets"
+                  - "ec2:DescribeRouteTables"
                   - "ec2:DescribeSecurityGroups"
                   - "logs:CreateLogGroup"
                   - "logs:CreateLogStream"
