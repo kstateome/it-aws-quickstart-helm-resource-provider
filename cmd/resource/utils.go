@@ -286,7 +286,7 @@ func AWSError(err error) error {
 	}
 	if awsErr, ok := err.(awserr.Error); ok {
 		// Get error details
-		log.Printf("AWS Error: %s - %s %v\n", awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+		log.Printf("AWS Error: %s - %s %v - %v\n", awsErr.Code(), awsErr.Message(), awsErr.OrigErr(), awsErr.Error())
 
 		// Prints out full error message, including original error if there was one.
 		log.Printf("Error: %v", awsErr.Error())
@@ -295,7 +295,7 @@ func AWSError(err error) error {
 		if origErr := awsErr.OrigErr(); origErr != nil {
 			// operate on original error.
 		}
-		return fmt.Errorf("AWS Error: %s - %s %v", awsErr.Code(), awsErr.Message(), awsErr.OrigErr())
+		return fmt.Errorf("AWS Error: %s - %s %v-%v", awsErr.Code(), awsErr.Message(), awsErr.OrigErr(), awsErr.Error())
 	}
 	return fmt.Errorf(err.Error())
 }

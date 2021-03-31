@@ -5,11 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
+	"github.com/ahmetb/go-linq/v3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -307,5 +309,41 @@ func filterNattedSubnets(ec2client ec2iface.EC2API, subnets []*string) (filtered
 			}
 		}
 	}
+	if len(filtered) > LambdaMaxSubnets {
+		log.Printf("Found more subnets than the Lambda supported limit... Limiting the subnet to %v", LambdaMaxSubnets)
+		return getMaxSubnets(ec2client, filtered, LambdaMaxSubnets)
+	}
 	return filtered, err
+}
+
+func getMaxSubnets(ec2client ec2iface.EC2API, subnets []*string, max int) (filtered []*string, err error) {
+	resp, err := ec2client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+		SubnetIds: subnets,
+	})
+
+	if err != nil {
+		return filtered, err
+	}
+
+	// get uniq azs from the subnets
+	azs := linq.From(resp.Subnets).SelectT(func(s *ec2.Subnet) string {
+		return aws.StringValue(s.AvailabilityZone)
+	}).OrderBy(func(item interface{}) interface{} { return item }).Distinct().Results()
+
+	// get the per AZ from the max count
+	var count int
+	count = int(math.Round(float64(max / len(azs))))
+	if count == 0 {
+		count = 1
+	}
+	for _, a := range azs {
+		var subnets []*string
+		linq.From(resp.Subnets).WhereT(func(s *ec2.Subnet) bool {
+			return aws.StringValue(s.AvailabilityZone) == a
+		}).SelectT(func(s *ec2.Subnet) *string {
+			return s.SubnetId
+		}).Take(count).ToSlice(&subnets)
+		filtered = append(filtered, subnets...)
+	}
+	return filtered, nil
 }

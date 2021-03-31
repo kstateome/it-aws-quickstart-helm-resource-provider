@@ -3,6 +3,7 @@ module github.com/aws-quickstart/quickstart-helm-resource-provider
 go 1.13
 
 require (
+	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
 	github.com/aws/aws-lambda-go v1.22.0
 	github.com/aws/aws-sdk-go v1.37.20

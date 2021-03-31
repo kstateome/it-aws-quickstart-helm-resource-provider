@@ -25,6 +25,7 @@ const (
 	Runtime            string = "go1.x"
 	Timeout            int64  = 900
 	UpdateInProgress   string = "The function could not be updated due to a concurrent update operation."
+	LambdaMaxSubnets   int    = 16
 )
 
 type Event struct {

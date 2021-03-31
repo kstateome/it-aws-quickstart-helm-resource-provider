@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -153,7 +154,7 @@ func (m *mockEKSClient) DescribeCluster(c *eks.DescribeClusterInput) (*eks.Descr
 func (m *mockEC2Client) DescribeSubnets(i *ec2.DescribeSubnetsInput) (*ec2.DescribeSubnetsOutput, error) {
 	subnets := []*ec2.Subnet{}
 	for _, subnet := range i.SubnetIds {
-		subnets = append(subnets, &ec2.Subnet{SubnetId: subnet, VpcId: aws.String("vpc-01")})
+		subnets = append(subnets, &ec2.Subnet{SubnetId: subnet, VpcId: aws.String("vpc-01"), AvailabilityZone: aws.String(fmt.Sprintf("az-%v", rand.Intn(3-1+1)+1))})
 	}
 	return &ec2.DescribeSubnetsOutput{
 		Subnets: subnets,
@@ -470,6 +471,33 @@ func TestFilterNattedSubnets(t *testing.T) {
 			result, err := filterNattedSubnets(mockSvc, d.subnets)
 			assert.Nil(t, err)
 			assert.ElementsMatch(t, d.eSubnets, result)
+		})
+	}
+}
+
+func TestGetMaxSubnets(t *testing.T) {
+	mockSvc := &mockEC2Client{}
+	tests := map[string]struct {
+		subnets       []*string
+		max           int
+		eSubnetsCount int
+	}{
+		"AzMoreThanMax": {
+			subnets:       []*string{aws.String("subnet-01"), aws.String("subnet-02"), aws.String("subnet-03")},
+			max:           2,
+			eSubnetsCount: 2,
+		},
+		"MoreThanMax": {
+			subnets:       []*string{aws.String("subnet-01"), aws.String("subnet-02"), aws.String("subnet-03"), aws.String("subnet-04"), aws.String("subnet-05"), aws.String("subnet-06"), aws.String("subnet-07"), aws.String("subnet-08"), aws.String("subnet-09"), aws.String("subnet-10"), aws.String("subnet-11"), aws.String("subnet-12"), aws.String("subnet-13"), aws.String("subnet-14"), aws.String("subnet-15"), aws.String("subnet-16"), aws.String("subnet-17"), aws.String("subnet-18"), aws.String("subnet-19"), aws.String("subnet-20")},
+			max:           16,
+			eSubnetsCount: 2,
+		},
+	}
+	for name, d := range tests {
+		t.Run(name, func(t *testing.T) {
+			result, err := getMaxSubnets(mockSvc, d.subnets, d.max)
+			assert.Nil(t, err)
+			assert.LessOrEqual(t, d.eSubnetsCount, len(result))
 		})
 	}
 }
