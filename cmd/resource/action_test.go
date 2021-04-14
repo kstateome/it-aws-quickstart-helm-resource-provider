@@ -341,10 +341,13 @@ func TestHelmUpgradeWrapper(t *testing.T) {
 		Action: UpdateReleaseAction,
 		Inputs: &Inputs{
 			Config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("one"),
 				Namespace: aws.String("default"),
 			},
 			ValueOpts: map[string]interface{}{},
+		},
+		Model: &Model{
+			ID: aws.String("umock-id"),
 		},
 	}
 	event.Inputs.ChartDetails, _ = c.getChartDetails(&Model{Chart: aws.String(testServer.URL + "/test.tgz")})

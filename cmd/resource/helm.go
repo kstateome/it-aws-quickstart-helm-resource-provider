@@ -349,58 +349,74 @@ func (c *Clients) HelmList(config *Config, chart *Chart) ([]HelmListData, error)
 }
 
 // HelmUpgrade invokes the helm upgrade client
-func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]interface{}, chart *Chart) error {
+func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]interface{}, chart *Chart, id string) error {
 	log.Printf("Upgrading release %s", name)
 	client := action.NewUpgrade(c.HelmClient)
 	var cp string
 	var err error
+	var state ReleaseState
+	client.Description = id
 
-	switch *chart.ChartType {
-	case "Remote":
-		if chart.ChartVersion != nil {
-			client.Version = *chart.ChartVersion
-		}
-		err = addHelmRepoUpdate(aws.StringValue(chart.ChartRepo), aws.StringValue(chart.ChartRepoURL), aws.StringValue(chart.ChartUsername), aws.StringValue(chart.ChartPassword), aws.BoolValue(chart.ChartSkipTLSVerify), aws.BoolValue(chart.ChartLocalCA), c.Settings)
-		if err != nil {
-			return genericError("Helm Upgrade", err)
-		}
-		client.ChartPathOptions.InsecureSkipTLSverify = *chart.ChartSkipTLSVerify
-		if !IsZero(chart.ChartUsername) && !IsZero(chart.ChartPassword) {
-			client.ChartPathOptions.Username = *chart.ChartUsername
-			client.ChartPathOptions.Password = *chart.ChartPassword
-		}
-		if *chart.ChartLocalCA {
-			client.ChartPathOptions.CaFile = caLocalPath
-		}
-		cp, err = client.ChartPathOptions.LocateChart(*chart.Chart, c.Settings)
-		if err != nil {
-			return genericError("Helm Upgrade", err)
-		}
-	default:
-		err = c.downloadChart(*chart.ChartPath, chartLocalPath)
-		if err != nil {
-			return err
-		}
-		cp = *chart.Chart
-	}
-	// Check chart dependencies to make sure all are present in /charts
-	ch, err := loader.Load(cp)
+	state, err = c.HelmVerifyRelease(*config.Name, id)
 	if err != nil {
 		return genericError("Helm Upgrade", err)
 	}
-	if req := ch.Metadata.Dependencies; req != nil {
-		if err := action.CheckDependencies(ch, req); err != nil {
+	switch state {
+	case ReleasePending:
+		log.Printf("Release with name: %s and ID: %s is pending state.", *config.Name, id)
+		return nil
+	case ReleaseError:
+		return err
+	case ReleaseFound:
+		log.Printf("Found release with name: %s and ID: %s. Proceeding with upgrade..", *config.Name, id)
+		switch *chart.ChartType {
+		case "Remote":
+			if chart.ChartVersion != nil {
+				client.Version = *chart.ChartVersion
+			}
+			err = addHelmRepoUpdate(aws.StringValue(chart.ChartRepo), aws.StringValue(chart.ChartRepoURL), aws.StringValue(chart.ChartUsername), aws.StringValue(chart.ChartPassword), aws.BoolValue(chart.ChartSkipTLSVerify), aws.BoolValue(chart.ChartLocalCA), c.Settings)
+			if err != nil {
+				return genericError("Helm Upgrade", err)
+			}
+			client.ChartPathOptions.InsecureSkipTLSverify = *chart.ChartSkipTLSVerify
+			if !IsZero(chart.ChartUsername) && !IsZero(chart.ChartPassword) {
+				client.ChartPathOptions.Username = *chart.ChartUsername
+				client.ChartPathOptions.Password = *chart.ChartPassword
+			}
+			if *chart.ChartLocalCA {
+				client.ChartPathOptions.CaFile = caLocalPath
+			}
+			cp, err = client.ChartPathOptions.LocateChart(*chart.Chart, c.Settings)
+			if err != nil {
+				return genericError("Helm Upgrade", err)
+			}
+		default:
+			err = c.downloadChart(*chart.ChartPath, chartLocalPath)
+			if err != nil {
+				return err
+			}
+			cp = *chart.Chart
+		}
+		// Check chart dependencies to make sure all are present in /charts
+		ch, err := loader.Load(cp)
+		if err != nil {
 			return genericError("Helm Upgrade", err)
 		}
+		if req := ch.Metadata.Dependencies; req != nil {
+			if err := action.CheckDependencies(ch, req); err != nil {
+				return genericError("Helm Upgrade", err)
+			}
+		}
+
+		rel, err := client.Run(name, ch, values)
+		if err != nil {
+			return genericError("Helm Upgrade", err)
+		}
+		log.Printf("Release %q has been upgraded. Happy Helming!\n", rel.Name)
+		return nil
 	}
 
-	rel, err := client.Run(name, ch, values)
-	if err != nil {
-		return genericError("Helm Upgrade", err)
-	}
-	log.Printf("Release %q has been upgraded. Happy Helming!\n", rel.Name)
-	return nil
-
+	return errors.New("unknown error")
 }
 
 // HelmVerifyDescription verifies the if the description matches ID
@@ -423,9 +439,11 @@ func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error
 		if status.Description == id {
 			return ReleaseFound, nil
 		}
-		return ReleaseError, errors.New("another release exists with the same name")
+		return ReleaseError, fmt.Errorf("another release exists with the same name but different ID %s instead of %s", status.Description, id)
+	case release.StatusFailed:
+		return ReleaseError, errors.New("release in failed status")
 	default:
-		return ReleaseError, errors.New("unknown erro")
+		return ReleaseError, errors.New("unknown error")
 	}
 	return ReleaseFound, nil
 }

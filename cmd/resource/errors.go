@@ -1,16 +1,15 @@
 package resource
 
 const (
-	// The specified helm action errors
+	// ErrCodeHelmActionException The specified helm action errors
 	ErrCodeHelmActionException = "HelmActionException"
 
-	// The specified helm action errors
+	// ErrCodeKubeException The specified helm action errors
 	ErrCodeKubeException = "KubeException"
 
-	// The specified lambda errors
+	// ErrCodeLambdaException The specified lambda errors
 	ErrCodeLambdaException = "LambdaException"
 
-	//
 	ErrCodeInvalidException = "InvalidRequest"
 
 	ErrCodeNotFound = "NotFound"

@@ -157,7 +157,7 @@ func TestHelmStatus(t *testing.T) {
 				Status:       "deployed",
 				Namespace:    "default",
 				ChartVersion: "0.1.0",
-				Description:  "Named Release Stub",
+				Description:  "umock-id",
 				Manifest:     TestManifest,
 			},
 		},
@@ -233,21 +233,21 @@ func TestHelmUpgrade(t *testing.T) {
 		"HTTPRepo": {
 			m: &Model{Chart: aws.String(testServer.URL + "/test.tgz")},
 			config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("one"),
 				Namespace: aws.String("default"),
 			},
 		},
 		"Dependency": {
 			m: &Model{Chart: aws.String(testServer.URL + "/dep-0.1.0.tgz")},
 			config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("two"),
 				Namespace: aws.String("default"),
 			},
 		},
 		"WrongChartFile": {
 			m: &Model{Chart: aws.String(testServer.URL + "/testt.tgz")},
 			config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("three"),
 				Namespace: aws.String("default"),
 			},
 			expectedErr: aws.String("At Downloading file"),
@@ -255,14 +255,14 @@ func TestHelmUpgrade(t *testing.T) {
 		"RemoteRepo": {
 			m: &Model{Chart: aws.String("stable/coscale")},
 			config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("five"),
 				Namespace: aws.String("default"),
 			},
 		},
 		"WrongRemoteRepo": {
 			m: &Model{Chart: aws.String("test/test")},
 			config: &Config{
-				Name:      aws.String("test"),
+				Name:      aws.String("five"),
 				Namespace: aws.String("default"),
 			},
 			expectedErr: aws.String("failed to download"),
@@ -272,7 +272,7 @@ func TestHelmUpgrade(t *testing.T) {
 	for name, d := range tests {
 		t.Run(name, func(t *testing.T) {
 			ch, _ := c.getChartDetails(d.m)
-			err := c.HelmUpgrade(aws.StringValue(d.config.Name), d.config, d.vals, ch)
+			err := c.HelmUpgrade(aws.StringValue(d.config.Name), d.config, d.vals, ch, "umock-id")
 			if err != nil {
 				assert.Contains(t, err.Error(), aws.StringValue(d.expectedErr))
 			}

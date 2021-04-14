@@ -102,12 +102,6 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		if err != nil {
 			return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, err.Error()))
 		}
-		// check if release exists before upgrade
-		e.Action = CheckReleaseAction
-		_, err = client.helmStatusWrapper(currentModel.Name, e, client.LambdaResource.functionName, vpc)
-		if err != nil {
-			return makeEvent(currentModel, NoStage, NewError(ErrCodeNotFound, err.Error()))
-		}
 		e.Action = UpdateReleaseAction
 		err = client.helmUpgradeWrapper(data.Name, e, client.LambdaResource.functionName, vpc)
 		if err != nil {
@@ -305,7 +299,7 @@ func (c *Clients) helmUpgradeWrapper(name *string, e *Event, functionName *strin
 		_, err := invokeLambda(c.AWSClients.LambdaClient(nil, nil), functionName, e)
 		return err
 	default:
-		return c.HelmUpgrade(*name, e.Inputs.Config, e.Inputs.ValueOpts, e.Inputs.ChartDetails)
+		return c.HelmUpgrade(*name, e.Inputs.Config, e.Inputs.ValueOpts, e.Inputs.ChartDetails, *e.Model.ID)
 	}
 }
 

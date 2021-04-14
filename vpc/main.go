@@ -48,7 +48,7 @@ func HandleRequest(_ context.Context, e resource.Event) (*resource.LambdaRespons
 		return res, err
 	case resource.UpdateReleaseAction:
 		fmt.Println("UpdateReleaseAction")
-		return nil, client.HelmUpgrade(aws.StringValue(data.Name), e.Inputs.Config, e.Inputs.ValueOpts, e.Inputs.ChartDetails)
+		return nil, client.HelmUpgrade(aws.StringValue(data.Name), e.Inputs.Config, e.Inputs.ValueOpts, e.Inputs.ChartDetails, *e.Model.ID)
 	case resource.UninstallReleaseAction:
 		fmt.Println("UninstallReleaseAction")
 		return nil, client.HelmUninstall(aws.StringValue(data.Name))

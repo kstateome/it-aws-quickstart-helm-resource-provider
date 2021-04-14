@@ -372,6 +372,11 @@ func makeMeSomeReleases(store *storage.Storage, t *testing.T) {
 	five.Namespace = "default"
 	five.Version = 3
 	five.Manifest = TestManifest
+	update := namedRelease("update", release.StatusDeployed)
+	update.Namespace = "default"
+	update.Info.Description = "eyJDbHVzdGVySUQiOiJla3MiLCJSZWdpb24iOiJldS13ZXN0LTEiLCJOYW1lIjoib25lIiwiTmFtZXNwYWNlIjoiZGVmYXVsdCJ9"
+	update.Version = 1
+	update.Manifest = TestManifest
 
 	for _, rel := range []*release.Release{one, two, three, four, five} {
 		if err := store.Create(rel); err != nil {
@@ -388,7 +393,7 @@ func namedRelease(name string, status release.Status) *release.Release {
 			FirstDeployed: now,
 			LastDeployed:  now,
 			Status:        status,
-			Description:   "Named Release Stub",
+			Description:   "umock-id",
 		},
 		Chart:   buildChart(),
 		Version: 1,
