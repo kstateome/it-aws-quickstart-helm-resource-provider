@@ -718,7 +718,3 @@ func popLastKnownError(name string) {
 		}
 	}
 }
-
-func checkIfS3URI(uri string) {
-
-}
