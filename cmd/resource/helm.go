@@ -365,6 +365,8 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 	case ReleasePending:
 		log.Printf("Release with name: %s and ID: %s is pending state.", *config.Name, id)
 		return nil
+	case ReleaseNotFound:
+		return errors.New(ErrCodeNotFound)
 	case ReleaseError:
 		return err
 	case ReleaseFound:
@@ -423,9 +425,7 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error) {
 	status, staterr := c.HelmStatus(name)
 	if staterr != nil {
-		log.Print(staterr)
 		if staterr.Error() == ErrCodeNotFound {
-			log.Printf("Release not found..")
 			return ReleaseNotFound, nil
 		}
 		return ReleaseError, staterr

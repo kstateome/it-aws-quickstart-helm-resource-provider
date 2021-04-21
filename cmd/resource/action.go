@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
@@ -105,6 +106,10 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		e.Action = UpdateReleaseAction
 		err = client.helmUpgradeWrapper(data.Name, e, client.LambdaResource.functionName, vpc)
 		if err != nil {
+			re := regexp.MustCompile(ErrCodeNotFound)
+			if re.MatchString(err.Error()) {
+				return makeEvent(nil, NoStage, NewError(ErrCodeNotFound, err.Error()))
+			}
 			return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 		}
 		currentModel.Name = data.Name
@@ -116,7 +121,8 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		}
 		err = client.helmDeleteWrapper(data.Name, e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			if err.Error() == ErrCodeNotFound {
+			re := regexp.MustCompile(ErrCodeNotFound)
+			if re.MatchString(err.Error()) {
 				return makeEvent(nil, NoStage, NewError(ErrCodeNotFound, err.Error()))
 			}
 			return makeEvent(nil, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
