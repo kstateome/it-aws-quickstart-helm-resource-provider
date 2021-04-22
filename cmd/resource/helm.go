@@ -357,20 +357,20 @@ func (c *Clients) HelmUpgrade(name string, config *Config, values map[string]int
 	var state ReleaseState
 	client.Description = id
 
-	state, err = c.HelmVerifyRelease(*config.Name, id)
+	state, err = c.HelmVerifyRelease(name, id)
 	if err != nil {
 		return genericError("Helm Upgrade", err)
 	}
 	switch state {
 	case ReleasePending:
-		log.Printf("Release with name: %s and ID: %s is pending state.", *config.Name, id)
+		log.Printf("Release with name: %s and ID: %s is pending state.", name, id)
 		return nil
 	case ReleaseNotFound:
 		return errors.New(ErrCodeNotFound)
 	case ReleaseError:
 		return err
 	case ReleaseFound:
-		log.Printf("Found release with name: %s and ID: %s. Proceeding with upgrade..", *config.Name, id)
+		log.Printf("Found release with name: %s and ID: %s. Proceeding with upgrade..", name, id)
 		switch *chart.ChartType {
 		case "Remote":
 			if chart.ChartVersion != nil {
