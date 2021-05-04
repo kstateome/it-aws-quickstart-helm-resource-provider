@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	kubeconfigutil "k8s.io/kubernetes/cmd/kubeadm/app/util/kubeconfig"
 )
 
 const (
@@ -71,7 +71,7 @@ func createKubeConfig(esvc EKSAPI, ssvc STSAPI, secsvc SecretsManagerAPI, cluste
 		defaultConfig.CurrentContext = "aws"
 		log.Printf("Writing kubeconfig file to %s", KubeConfigLocalPath)
 
-		err = kubeconfigutil.WriteToDisk(KubeConfigLocalPath, defaultConfig)
+		err = clientcmd.WriteToFile(*defaultConfig, KubeConfigLocalPath)
 		if err != nil {
 			return genericError("Write file: ", err)
 		}
