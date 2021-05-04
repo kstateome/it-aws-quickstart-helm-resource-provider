@@ -1,13 +1,16 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  ClusterName:
+    Type: String
+    Default: helm-contract-test
+  ReleaseName:
+    Type: String
+    Default: helm-contract-test
 Resources:
-  EKSClusterResourceProvider:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: 'https://aws-quickstart.s3.us-east-1.amazonaws.com/quickstart-amazon-eks-cluster-resource-provider/deploy.template.yaml'
-      Parameters:
-        CreateClusterAccessRole: false
   EKSResources:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 'https://aws-quickstart.s3.us-east-1.amazonaws.com/quickstart-helm-resource-provider/contract_test_exports.template.yaml'
-    DependsOn: EKSClusterResourceProvider
+      TemplateURL: !Sub 'https://abcpteb.s3-eu-west-1.amazonaws.com/contract_test_exports.template.yaml'
+      Parameters:
+        ClusterName: !Ref ClusterName
+        ReleaseName: !Ref ReleaseName
