@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
+	"regexp"
 
 	"helm.sh/helm/v3/pkg/kube"
 	appsv1 "k8s.io/api/apps/v1"
@@ -128,6 +129,13 @@ func (c *Clients) CheckPendingResources(r *ReleaseData) (bool, error) {
 	}
 	infos, err := c.getManifestDetails(r)
 	if err != nil {
+		// Retry if resources not found
+		// todo: Need to have retry count
+		re := regexp.MustCompile("not found")
+		if re.MatchString(err.Error()) {
+			log.Println(err.Error())
+			return true, nil
+		}
 		return true, err
 	}
 	for _, info := range infos {
