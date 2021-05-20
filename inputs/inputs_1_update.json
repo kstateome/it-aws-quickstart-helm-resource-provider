@@ -3,9 +3,6 @@
   "ID": "{{AwsqsEksClusterContractTestID}}",
   "ClusterID": "{{AwsqsEksClusterContractTestClusterName}}",
   "RoleArn": "{{AwsqsEksClusterContractTestHelmRoleArn}}",
-  "Repository": "https://charts.jenkins.io",
-  "Chart": "jenkins/jenkins",
-  "Values": {
-    "controller.healthProbes": "false"
-  }
+  "Repository": "https://prometheus-community.github.io/helm-charts",
+  "Chart": "prometheus-community/kube-state-metrics"
 }
