@@ -43,6 +43,7 @@ Resources:
                   - "lambda:InvokeFunction"  # required for EKS clusters with Public Endpoint disabled
                   - "lambda:CreateFunction"  # required for EKS clusters with Public Endpoint disabled
                   - "lambda:UpdateFunctionCode"  # required for EKS clusters with Public Endpoint disabled
+                  - "cloudformation:ListExports"  # required for fetching contract test inputs
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:
