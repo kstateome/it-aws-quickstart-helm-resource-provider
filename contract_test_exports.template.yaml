@@ -204,16 +204,16 @@ Outputs:
   ClusterName:
     Value: !Ref Cluster
     Export:
-      Name: AwsqsEksClusterContractTestClusterName
+      Name: AwsqsKubernetesHelmContractTestClusterName
   HelmRoleArn:
     Value: !GetAtt HelmRole.Arn
     Export:
-      Name: AwsqsEksClusterContractTestHelmRoleArn
+      Name: AwsqsKubernetesHelmContractTestHelmRoleArn
   ReleaseName:
     Value: !Ref ReleaseName
     Export:
-      Name: AwsqsEksClusterContractTestReleaseName
+      Name: AwsqsKubernetesHelmContractTestReleaseName
   ID:
     Value: !GetAtt IDGen.ID
     Export:
-      Name: AwsqsEksClusterContractTestID
+      Name: AwsqsKubernetesHelmContractTestID
