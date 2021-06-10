@@ -46,7 +46,7 @@ Resources:
       Chart: prometheus-community/kube-state-metrics
 ```
 
-### Install kube-state-metrics chart enabling monitoring using helm values
+### Install kube-state-metrics chart and enable prometheus monitoring using helm values
 ```yaml
 AWSTemplateFormatVersion: "2010-09-09"
 Resources:
