@@ -58,7 +58,7 @@ Resources:
       Namespace: kube-state-metrics
       Repository: https://prometheus-community.github.io/helm-charts
       Chart: prometheus-community/kube-state-metrics
-      Values: |
+      ValueYaml: |
         prometheus:
           monitor:
             enabled: true
