@@ -1,26 +1,26 @@
 module github.com/aws-quickstart/quickstart-helm-resource-provider
 
-go 1.13
+go 1.16
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
-	github.com/aws/aws-lambda-go v1.23.0
-	github.com/aws/aws-sdk-go v1.38.22
+	github.com/aws/aws-lambda-go v1.24.0
+	github.com/aws/aws-sdk-go v1.38.63
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible // indirect
 	github.com/gofrs/flock v0.8.0
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/opencontainers/runc v1.0.0-rc92 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	helm.sh/helm/v3 v3.5.4
-	k8s.io/api v0.20.4
-	k8s.io/apiextensions-apiserver v0.20.4
-	k8s.io/apimachinery v0.20.4
-	k8s.io/cli-runtime v0.20.4
-	k8s.io/client-go v0.20.4
-	k8s.io/kubectl v0.20.4
-	sigs.k8s.io/aws-iam-authenticator v0.5.2
+	helm.sh/helm/v3 v3.6.1
+	k8s.io/api v0.21.0
+	k8s.io/apiextensions-apiserver v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/cli-runtime v0.21.0
+	k8s.io/client-go v0.21.0
+	k8s.io/kubectl v0.21.0
+	sigs.k8s.io/aws-iam-authenticator v0.5.3
 	sigs.k8s.io/yaml v1.2.0
 )
 
