@@ -22,10 +22,9 @@ in one of two ways:
   the IAM execution role created above to the `system:masters` group. (Note: you can scope this down if you plan to use 
   the resource type to only perform specific operations on the kubernetes cluster)
 
-## Registering the Resource type
-To privately register the helm resource type into your account a CloudFromation template has been 
-provided [here](https://github.com/aws-quickstart/quickstart-helm-resource-provider/blob/main/register-type.template.yaml). 
-Note that this must be run in each region yo plan to use this project in.
+## Activating the Resource type
+To activate the resource type in your account go [here](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/registry/public-extensions/details/schema?arn=arn:aws:cloudformation:us-east-1::type/resource/408988dff9e863704bcc72e7e13f8d645cee8311/AWSQS-Kubernetes-Helm), then choose the AWS Region you would like to use it in and click ***Activate***.
+
 
 ## Usage
 Properties and return values are documented [here](./docs/README.md).
