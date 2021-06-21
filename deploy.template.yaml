@@ -54,6 +54,10 @@ Resources:
                   - "lambda:InvokeFunction"
                   - "lambda:CreateFunction"
                   - "lambda:UpdateFunctionCode"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
                 Resource: "*"
   LogDeliveryRole:
     Type: AWS::IAM::Role

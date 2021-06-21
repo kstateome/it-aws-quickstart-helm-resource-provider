@@ -159,7 +159,11 @@
                 "lambda:GetFunction",
                 "lambda:InvokeFunction",
                 "lambda:CreateFunction",
-                "lambda:UpdateFunctionCode"
+                "lambda:UpdateFunctionCode",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
             ]
         },
         "read": {
@@ -185,7 +189,11 @@
                 "lambda:GetFunction",
                 "lambda:InvokeFunction",
                 "lambda:CreateFunction",
-                "lambda:UpdateFunctionCode"
+                "lambda:UpdateFunctionCode",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
             ]
         },
         "update": {
@@ -211,7 +219,11 @@
                 "lambda:GetFunction",
                 "lambda:InvokeFunction",
                 "lambda:CreateFunction",
-                "lambda:UpdateFunctionCode"
+                "lambda:UpdateFunctionCode",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
             ]
         },
         "delete": {
@@ -237,7 +249,11 @@
                 "lambda:GetFunction",
                 "lambda:InvokeFunction",
                 "lambda:CreateFunction",
-                "lambda:UpdateFunctionCode"
+                "lambda:UpdateFunctionCode",
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage"
             ]
         }
     }

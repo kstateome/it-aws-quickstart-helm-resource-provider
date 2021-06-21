@@ -44,6 +44,10 @@ Resources:
                   - "lambda:CreateFunction"  # required for EKS clusters with Public Endpoint disabled
                   - "lambda:UpdateFunctionCode"  # required for EKS clusters with Public Endpoint disabled
                   - "cloudformation:ListExports"  # required for fetching contract test inputs
+                  - "ecr:GetAuthorizationToken" # required for fetching charts from ECR
+                  - "ecr:BatchCheckLayerAvailability" # required for fetching charts from ECR
+                  - "ecr:GetDownloadUrlForLayer" # required for fetching charts from ECR
+                  - "ecr:BatchGetImage" # required for fetching charts from ECR
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:
