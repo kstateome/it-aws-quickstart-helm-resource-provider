@@ -309,7 +309,7 @@ func TestHTTPDownload(t *testing.T) {
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
 
-			err := downloadHTTP(testServer.URL+"/"+file, "/dev/null")
+			err := downloadHTTP(testServer.URL+"/"+file, "/dev/null", nil, nil)
 			if err != nil {
 				assert.Contains(t, err.Error(), "At Downloading file")
 			}

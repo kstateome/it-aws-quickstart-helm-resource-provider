@@ -340,13 +340,24 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 }
 
 // downloadHTTP downloads the file to specified path
-func downloadHTTP(url string, filepath string) error {
+func downloadHTTP(url, filepath string, username, password *string) error {
 	log.Printf("Getting file from URL...")
 	// Get the data
-	resp, err := http.Get(url)
+	//resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return genericError("Generating request", err)
+	}
+	if !IsZero(username) && !IsZero(password) {
+		req.SetBasicAuth(*username, *password)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return genericError("Downloading file", err)
 	}
+
 	if resp.StatusCode != 200 {
 		return genericError("Downloading file", fmt.Errorf("got response %v", resp.StatusCode))
 	}
@@ -445,7 +456,7 @@ func (c *Clients) downloadChart(ur, f string, username, password *string) error 
 			return err
 		}
 	default:
-		err = downloadHTTP(ur, f)
+		err = downloadHTTP(ur, f, username, password)
 		if err != nil {
 			return err
 		}
