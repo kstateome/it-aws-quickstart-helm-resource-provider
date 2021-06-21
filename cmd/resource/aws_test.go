@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -43,6 +44,10 @@ type mockS3Client struct {
 	S3API
 }
 
+type mockECRClient struct {
+	ECRAPI
+}
+
 func (m *mockAWSClients) EKSClient(region *string, role *string) EKSAPI {
 	return &mockEKSClient{}
 }
@@ -60,6 +65,9 @@ func (m *mockAWSClients) LambdaClient(region *string, role *string) LambdaAPI {
 }
 func (m *mockAWSClients) SecretsManagerClient(region *string, role *string) SecretsManagerAPI {
 	return &mockSecretsManagerClient{}
+}
+func (m *mockAWSClients) ECRClient(region *string, role *string) ECRAPI {
+	return &mockECRClient{}
 }
 func (m *mockAWSClients) Session(region *string, role *string) *session.Session {
 	return MockSession
@@ -287,6 +295,17 @@ func (m *mockS3Client) GetObjectWithContext(ctx aws.Context, input *s3.GetObject
 	return &s3.GetObjectOutput{
 		Body:          ioutil.NopCloser(bytes.NewReader(data[:])),
 		ContentLength: aws.Int64(int64(len(data))),
+	}, nil
+}
+
+func (m *mockECRClient) GetAuthorizationToken(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
+
+	return &ecr.GetAuthorizationTokenOutput{
+		AuthorizationData: []*ecr.AuthorizationData{
+			0: {
+				AuthorizationToken: aws.String("QVdTOnBhc3N3b3Jk"),
+			},
+		},
 	}, nil
 }
 
@@ -532,4 +551,13 @@ func TestGetMaxSubnets(t *testing.T) {
 			assert.LessOrEqual(t, d.eSubnetsCount, len(result))
 		})
 	}
+}
+
+func TestGetECRLogin(t *testing.T) {
+	mockSvc := &mockECRClient{}
+	expectedUsername := aws.String("AWS")
+	expectedPassword := aws.String("password")
+	username, password, _ := getECRLogin(mockSvc)
+	assert.EqualValues(t, aws.StringValue(expectedUsername), aws.StringValue(username))
+	assert.EqualValues(t, aws.StringValue(expectedPassword), aws.StringValue(password))
 }

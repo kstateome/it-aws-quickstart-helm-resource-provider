@@ -24,6 +24,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/containerd/containerd/remotes/docker"
+	orascontent "github.com/deislabs/oras/pkg/content"
+	orascontext "github.com/deislabs/oras/pkg/context"
+	"github.com/deislabs/oras/pkg/oras"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/strvals"
@@ -170,8 +174,10 @@ func (c *Clients) getChartDetails(m *Model) (*Chart, error) {
 		if err != nil {
 			return nil, genericError("Process chart", err)
 		}
+		//var ecrRe = regexp.MustCompile(`(?smi)((\d+).dkr.ecr.(\w+-\w+-\d+).amazonaws.com)|(public.ecr.aws)`)
 		switch {
-		case u.Host != "":
+		//case u.Host != "", ecrRe.MatchString(*m.Chart):
+		case u.Host != "", strings.ToLower(u.Scheme) == "oci":
 			cd.ChartType = aws.String("Local")
 			cd.Chart = aws.String(chartLocalPath)
 			cd.ChartPath = m.Chart
@@ -185,6 +191,13 @@ func (c *Clients) getChartDetails(m *Model) (*Chart, error) {
 			}
 			re := regexp.MustCompile(`[A-Za-z]+`)
 			cd.ChartName = aws.String(re.FindAllString(chart, 1)[0])
+			if !IsZero(m.RepositoryOptions) {
+				if !IsZero(m.RepositoryOptions.Username) && !IsZero(m.RepositoryOptions.Password) {
+					log.Printf("Using basic authentication with username: %s for repository", *m.RepositoryOptions.Username)
+					cd.ChartUsername = m.RepositoryOptions.Username
+					cd.ChartPassword = m.RepositoryOptions.Password
+				}
+			}
 		default:
 			// Get repo name and chart
 			sa := strings.Split(*m.Chart, "/")
@@ -401,7 +414,7 @@ func DecodeID(id *string) (*ID, error) {
 }
 
 // downloadChart downloads the chart
-func (c *Clients) downloadChart(ur string, f string) error {
+func (c *Clients) downloadChart(ur, f string, username, password *string) error {
 	u, err := url.Parse(ur)
 	if err != nil {
 		return genericError("Process url", err)
@@ -415,6 +428,19 @@ func (c *Clients) downloadChart(ur string, f string) error {
 			return err
 		}
 		err = downloadS3(c.AWSClients.S3Client(region, nil), bucket, key, f)
+		if err != nil {
+			return err
+		}
+	case strings.ToLower(u.Scheme) == "oci":
+		var ecrRe = regexp.MustCompile(`(?smi)((\d+).dkr.ecr.(\w+-\w+-\d+).amazonaws.com)`)
+		if ecrRe.MatchString(u.Host) {
+			username, password, err = getECRLogin(c.AWSClients.ECRClient(nil, nil))
+			if err != nil {
+				return err
+			}
+		}
+
+		err = downloadOCI(u.Host, strings.TrimLeft(u.Path, "/"), aws.StringValue(username), aws.StringValue(password), f)
 		if err != nil {
 			return err
 		}
@@ -717,4 +743,65 @@ func popLastKnownError(name string) {
 			LastKnownErrors = LastKnownErrors[:len(LastKnownErrors)-1]
 		}
 	}
+}
+
+func downloadOCI(endpoint, manifest, username, password, file string) error {
+	fullName := fmt.Sprintf("%s/%s", endpoint, manifest)
+	ctx := orascontext.Background()
+	memoryStore := orascontent.NewMemoryStore()
+	headers := http.Header{}
+	headers.Set("User-Agent", "CloudFormation-Helm-Resource-Provider")
+	var authorizerOpt []docker.AuthorizerOpt
+	authorizerOpt = append(authorizerOpt, docker.WithAuthClient(http.DefaultClient), docker.WithAuthHeader(headers))
+	if !IsZero(username) && !IsZero(password) {
+		authorizerOpt = append(authorizerOpt, docker.WithAuthCreds(func(host string) (string, string, error) {
+			host = endpoint
+			return username, password, nil
+		}))
+	}
+	authorizer := docker.NewDockerAuthorizer(authorizerOpt...)
+
+	regHosts := func(host string) ([]docker.RegistryHost, error) {
+		host = endpoint
+		config := docker.RegistryHost{
+			Client:       http.DefaultClient,
+			Authorizer:   authorizer,
+			Scheme:       "https",
+			Path:         "/v2",
+			Host:         endpoint,
+			Header:       headers,
+			Capabilities: docker.HostCapabilityPull | docker.HostCapabilityResolve,
+		}
+		return []docker.RegistryHost{config}, nil
+
+	}
+
+	resolver := docker.NewResolver(docker.ResolverOptions{
+		Hosts:   regHosts,
+		Headers: headers,
+	})
+
+	_, content, err := oras.Pull(ctx, resolver, fullName, memoryStore,
+		oras.WithPullEmptyNameAllowed(),
+		oras.WithAllowedMediaTypes(HelmKnownMediaTypes()))
+
+	if err != nil {
+		return genericError("Downloading", fmt.Errorf("pull failed %s, Error: %s", fullName, err))
+	}
+
+	if len(content) != 1 {
+		return genericError("Checking downloaded content", fmt.Errorf("%s has invalid configuration", fullName))
+	}
+
+	_, bytes, ok := memoryStore.Get(content[0])
+	if !ok {
+		return err
+	}
+
+	err = ioutil.WriteFile(file, bytes, 0644)
+	if err != nil {
+		return genericError("Writing file", err)
+	}
+	log.Printf("Downloaded %s ", file)
+	return nil
 }

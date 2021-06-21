@@ -9,13 +9,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -42,6 +43,7 @@ type STSAPI stsiface.STSAPI
 type SecretsManagerAPI secretsmanageriface.SecretsManagerAPI
 type EKSAPI eksiface.EKSAPI
 type EC2API ec2iface.EC2API
+type ECRAPI ecriface.ECRAPI
 
 type AWSClients struct {
 	AWSSession *session.Session
@@ -55,6 +57,7 @@ type AWSClientsIface interface {
 	SecretsManagerClient(region *string, role *string) SecretsManagerAPI
 	EKSClient(region *string, role *string) EKSAPI
 	EC2Client(region *string, role *string) EC2API
+	ECRClient(region *string, role *string) ECRAPI
 	Session(region *string, role *string) *session.Session
 }
 
@@ -80,6 +83,10 @@ func (c *AWSClients) EKSClient(region *string, role *string) EKSAPI {
 
 func (c *AWSClients) EC2Client(region *string, role *string) EC2API {
 	return ec2.New(c.Session(region, role))
+}
+
+func (c *AWSClients) ECRClient(region *string, role *string) ECRAPI {
+	return ecr.New(c.Session(region, role))
 }
 
 func (c *AWSClients) Session(region *string, role *string) *session.Session {
@@ -343,4 +350,24 @@ func getMaxSubnets(ec2client ec2iface.EC2API, subnets []*string, max int) (filte
 		filtered = append(filtered, subnets...)
 	}
 	return filtered, nil
+}
+
+func getECRLogin(ecrClient ECRAPI) (*string, *string, error) {
+	log.Printf("Generating token for ECR")
+	res, err := ecrClient.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	if err != nil {
+		return nil, nil, AWSError(err)
+	}
+	if len(res.AuthorizationData) < 1 || res.AuthorizationData[0].AuthorizationToken == nil {
+		return nil, nil, fmt.Errorf("authorization data not found in GetAuthorizationToken")
+	}
+
+	raw, err := base64.StdEncoding.DecodeString(*res.AuthorizationData[0].AuthorizationToken)
+	if err != nil {
+		return nil, nil, genericError("Decoding credential", err)
+
+	}
+	up := strings.Split(string(raw), ":")
+
+	return aws.String(up[0]), aws.String(up[1]), nil
 }

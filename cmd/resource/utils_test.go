@@ -439,7 +439,7 @@ func TestDownloadChart(t *testing.T) {
 	c := NewMockClient(t, nil)
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
-			err := c.downloadChart(file, "/dev/null")
+			err := c.downloadChart(file, "/dev/null", nil, nil)
 			assert.Nil(t, err)
 		})
 	}

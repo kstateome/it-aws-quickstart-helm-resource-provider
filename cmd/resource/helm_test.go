@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"helm.sh/helm/v3/pkg/cli"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
@@ -278,4 +278,10 @@ func TestHelmUpgrade(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHelmKnownMediaTypes(t *testing.T) {
+	expectedRes := []string{HelmChartContentLayerMediaType}
+	res := HelmKnownMediaTypes()
+	assert.EqualValues(t, expectedRes, res)
 }
