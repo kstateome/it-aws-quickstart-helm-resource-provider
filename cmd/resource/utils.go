@@ -174,9 +174,7 @@ func (c *Clients) getChartDetails(m *Model) (*Chart, error) {
 		if err != nil {
 			return nil, genericError("Process chart", err)
 		}
-		//var ecrRe = regexp.MustCompile(`(?smi)((\d+).dkr.ecr.(\w+-\w+-\d+).amazonaws.com)|(public.ecr.aws)`)
 		switch {
-		//case u.Host != "", ecrRe.MatchString(*m.Chart):
 		case u.Host != "", strings.ToLower(u.Scheme) == "oci":
 			cd.ChartType = aws.String("Local")
 			cd.Chart = aws.String(chartLocalPath)
@@ -445,7 +443,10 @@ func (c *Clients) downloadChart(ur, f string, username, password *string) error 
 	case strings.ToLower(u.Scheme) == "oci":
 		var ecrRe = regexp.MustCompile(`(?smi)((\d+).dkr.ecr.(\w+-\w+-\d+).amazonaws.com)`)
 		if ecrRe.MatchString(u.Host) {
-			username, password, err = getECRLogin(c.AWSClients.ECRClient(nil, nil))
+			// Get region from the ECR endpoint
+			hostParts := strings.Split(u.Host, ".")
+			region := aws.String(hostParts[len(hostParts)-3])
+			username, password, err = getECRLogin(c.AWSClients.ECRClient(region, nil))
 			if err != nil {
 				return err
 			}
