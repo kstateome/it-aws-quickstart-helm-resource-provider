@@ -15,7 +15,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc92 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	helm.sh/helm/v3 v3.6.1
+	helm.sh/helm/v3 v3.6.2
 	k8s.io/api v0.21.0
 	k8s.io/apiextensions-apiserver v0.21.0
 	k8s.io/apimachinery v0.21.0
