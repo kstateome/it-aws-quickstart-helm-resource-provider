@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2021-07-06
+### Changed
+* Updated Helm module to v3.6.2
+* Fix for cross region ECR repositories 
+
 ## [1.1.0] - 2021-06-21
 ### Added
 * Support for OCI repositories
