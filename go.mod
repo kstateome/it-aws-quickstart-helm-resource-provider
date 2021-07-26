@@ -7,7 +7,7 @@ require (
 	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
 	github.com/aws/aws-lambda-go v1.24.0
 	github.com/aws/aws-sdk-go v1.38.63
-	github.com/containerd/containerd v1.4.4
+	github.com/containerd/containerd v1.4.8
 	github.com/deislabs/oras v0.11.1
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible // indirect
 	github.com/gofrs/flock v0.8.0
