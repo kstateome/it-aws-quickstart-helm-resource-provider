@@ -7,12 +7,11 @@ require (
 	github.com/aws-cloudformation/cloudformation-cli-go-plugin v1.0.3
 	github.com/aws/aws-lambda-go v1.24.0
 	github.com/aws/aws-sdk-go v1.38.63
-	github.com/containerd/containerd v1.4.8
-	github.com/deislabs/oras v0.11.1
-	github.com/docker/docker v17.12.0-ce-rc1.0.20200916142827-bd33bbf0497b+incompatible // indirect
+	github.com/containerd/containerd v1.5.4
+	github.com/docker/docker v17.12.1-ce+incompatible // indirect
 	github.com/gofrs/flock v0.8.0
 	github.com/gorilla/mux v1.8.0 // indirect
-	github.com/opencontainers/runc v1.0.0-rc92 // indirect
+	github.com/opencontainers/runc v1.0.0-rc95 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 	helm.sh/helm/v3 v3.6.2
@@ -22,6 +21,7 @@ require (
 	k8s.io/cli-runtime v0.21.0
 	k8s.io/client-go v0.21.0
 	k8s.io/kubectl v0.21.0
+	oras.land/oras-go v0.4.0
 	sigs.k8s.io/aws-iam-authenticator v0.5.3
 	sigs.k8s.io/yaml v1.2.0
 )
