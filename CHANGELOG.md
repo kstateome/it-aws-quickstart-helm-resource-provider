@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2021-09-16
+### Changed
+* Updated Helm module to v3.7.0
+* Updated AWS-SDK module to v1.40.43
+* Updated AWS-Lambda module to v1.26.0
+* Add cluster security group to Lambda 
+
 ## [1.1.1] - 2021-07-06
 ### Changed
 * Updated Helm module to v3.6.2
