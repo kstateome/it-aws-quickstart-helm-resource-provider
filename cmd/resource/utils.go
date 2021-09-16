@@ -25,14 +25,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/containerd/containerd/remotes/docker"
-	orascontent "oras.land/oras-go/pkg/content"
-	orascontext "oras.land/oras-go/pkg/context"
-	"oras.land/oras-go/pkg/oras"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
+	orascontent "oras.land/oras-go/pkg/content"
+	orascontext "oras.land/oras-go/pkg/context"
+	"oras.land/oras-go/pkg/oras"
 	"sigs.k8s.io/yaml"
 )
 
@@ -614,6 +614,7 @@ func roughlyEqual(a []*string, b []*string) bool {
 
 // checkSize to see if the size of interface is greater than
 func checkSize(v interface{}, size int) bool {
+	gob.Register(map[string]interface{}{})
 	b := new(bytes.Buffer)
 	if err := gob.NewEncoder(b).Encode(v); err != nil {
 		//log.Printf("Warning: Error calculating size of output: %s", err.Error())
