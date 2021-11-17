@@ -91,9 +91,13 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		e.Model = currentModel
 		err = client.helmInstallWrapper(e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
+			if err.Error() != ReleaseAlreadyExistsMsg {
+				return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
+			}
+		} else {
+			return makeEvent(currentModel, ReleaseStabilize, nil)
 		}
-		return makeEvent(currentModel, ReleaseStabilize, nil)
+		fallthrough
 	case UpdateReleaseAction:
 		e.Inputs.ValueOpts, err = client.processValues(currentModel)
 		if err != nil {

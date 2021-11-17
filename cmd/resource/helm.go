@@ -64,10 +64,11 @@ type HelmListData struct {
 type ReleaseState string
 
 const (
-	ReleaseFound    ReleaseState = "ReleaseFound"
-	ReleaseNotFound ReleaseState = "ReleaseNotFound"
-	ReleasePending  ReleaseState = "ReleasePending"
-	ReleaseError    ReleaseState = "ReleaseError"
+	ReleaseFound            ReleaseState = "ReleaseFound"
+	ReleaseNotFound         ReleaseState = "ReleaseNotFound"
+	ReleasePending          ReleaseState = "ReleasePending"
+	ReleaseError            ReleaseState = "ReleaseError"
+	ReleaseAlreadyExistsMsg              = "release already exists"
 )
 
 // HelmClientInvoke generates the namespaced helm client
@@ -193,7 +194,7 @@ func (c *Clients) HelmInstall(config *Config, values map[string]interface{}, cha
 		return err
 	case ReleaseFound:
 		log.Printf("Found release with name: %s and ID: %s. Please check..", *config.Name, id)
-		return genericError("Helm install", errors.New("release already exists"))
+		return genericError("Helm install", errors.New(ReleaseAlreadyExistsMsg))
 	}
 
 	log.Printf("Installing release %s", *config.Name)
