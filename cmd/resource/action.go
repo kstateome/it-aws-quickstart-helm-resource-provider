@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws-cloudformation/cloudformation-cli-go-plugin/cfn/handler"
@@ -91,7 +92,7 @@ func initialize(session *session.Session, currentModel *Model, action Action) ha
 		e.Model = currentModel
 		err = client.helmInstallWrapper(e, client.LambdaResource.functionName, vpc)
 		if err != nil {
-			if err.Error() != ReleaseAlreadyExistsMsg {
+			if !strings.Contains(err.Error(), ReleaseAlreadyExistsMsg) {
 				return makeEvent(currentModel, NoStage, NewError(ErrCodeHelmActionException, err.Error()))
 			}
 		} else {
