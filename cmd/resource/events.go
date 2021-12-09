@@ -35,17 +35,15 @@ func successEvent(model *Model) handler.ProgressEvent {
 
 func inProgressEvent(model *Model, stage Stage) handler.ProgressEvent {
 	log.Printf("Returning IN_PROGRESS next stage %v...\n", stage)
-	context := map[string]interface{}{
-		"Stage":     stage,
-		"StartTime": os.Getenv("StartTime"),
-		"Name":      aws.StringValue(model.Name),
-	}
-	log.Printf("Returning CallbackContext: %v", context)
 	return handler.ProgressEvent{
-		OperationStatus:      handler.InProgress,
-		Message:              fmt.Sprintf("%v in progress\n", stage),
-		ResourceModel:        model,
-		CallbackContext:      context,
+		OperationStatus: handler.InProgress,
+		Message:         fmt.Sprintf("%v in progress\n", stage),
+		ResourceModel:   model,
+		CallbackContext: map[string]interface{}{
+			"Stage":     stage,
+			"StartTime": os.Getenv("StartTime"),
+			"Name":      aws.StringValue(model.Name),
+		},
 		CallbackDelaySeconds: callbackDelaySeconds,
 	}
 }

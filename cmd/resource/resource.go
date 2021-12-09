@@ -24,7 +24,6 @@ func init() {
 // Create handles the Create event from the CloudFormation service.
 func Create(req handler.Request, _ *Model, currentModel *Model) (handler.ProgressEvent, error) {
 	defer LogPanic()
-	log.Printf("Got request with CallbackContext: %v", req.CallbackContext)
 	stage := getStage(req.CallbackContext)
 	switch stage {
 	case InitStage, LambdaStabilize:
