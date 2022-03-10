@@ -24,15 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/containerd/containerd/remotes/docker"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/strvals"
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
-	orascontent "oras.land/oras-go/pkg/content"
-	orascontext "oras.land/oras-go/pkg/context"
-	"oras.land/oras-go/pkg/oras"
 	"sigs.k8s.io/yaml"
 )
 
@@ -758,63 +755,32 @@ func popLastKnownError(name string) {
 	}
 }
 
+// downloadOCI to download charts from OCI repositories
 func downloadOCI(endpoint, manifest, username, password, file string) error {
-	fullName := fmt.Sprintf("%s/%s", endpoint, manifest)
-	ctx := orascontext.Background()
-	memoryStore := orascontent.NewMemoryStore()
-	headers := http.Header{}
-	headers.Set("User-Agent", "CloudFormation-Helm-Resource-Provider")
-	var authorizerOpt []docker.AuthorizerOpt
-	authorizerOpt = append(authorizerOpt, docker.WithAuthClient(http.DefaultClient), docker.WithAuthHeader(headers))
-	if !IsZero(username) && !IsZero(password) {
-		authorizerOpt = append(authorizerOpt, docker.WithAuthCreds(func(host string) (string, string, error) {
-			host = endpoint
-			return username, password, nil
-		}))
-	}
-	authorizer := docker.NewDockerAuthorizer(authorizerOpt...)
-
-	regHosts := func(host string) ([]docker.RegistryHost, error) {
-		host = endpoint
-		config := docker.RegistryHost{
-			Client:       http.DefaultClient,
-			Authorizer:   authorizer,
-			Scheme:       "https",
-			Path:         "/v2",
-			Host:         endpoint,
-			Header:       headers,
-			Capabilities: docker.HostCapabilityPull | docker.HostCapabilityResolve,
-		}
-		return []docker.RegistryHost{config}, nil
-
-	}
-
-	resolver := docker.NewResolver(docker.ResolverOptions{
-		Hosts:   regHosts,
-		Headers: headers,
-	})
-
-	_, content, err := oras.Pull(ctx, resolver, fullName, memoryStore,
-		oras.WithPullEmptyNameAllowed(),
-		oras.WithAllowedMediaTypes(HelmKnownMediaTypes()))
-
+	fullHost := fmt.Sprintf("%s/%s", endpoint, manifest)
+	fmt.Println(fullHost)
+	regClient, err := registry.NewClient()
 	if err != nil {
-		return genericError("Downloading", fmt.Errorf("pull failed %s, Error: %s", fullName, err))
-	}
-
-	if len(content) != 1 {
-		return genericError("Checking downloaded content", fmt.Errorf("%s has invalid configuration", fullName))
-	}
-
-	_, bytes, ok := memoryStore.Get(content[0])
-	if !ok {
+		fmt.Println("New client")
 		return err
 	}
 
-	err = ioutil.WriteFile(file, bytes, 0644)
+	err = regClient.Login(endpoint, registry.LoginOptBasicAuth(username, password))
+	if err != nil {
+		fmt.Println("Login")
+		return err
+	}
+	defer regClient.Logout(endpoint)
+	result, err := regClient.Pull(fullHost)
+	if err != nil {
+		fmt.Println("Pull")
+		return err
+	}
+	err = ioutil.WriteFile(file, result.Chart.Data, 0644)
 	if err != nil {
 		return genericError("Writing file", err)
 	}
 	log.Printf("Downloaded %s ", file)
+
 	return nil
 }

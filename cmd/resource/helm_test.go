@@ -279,9 +279,3 @@ func TestHelmUpgrade(t *testing.T) {
 		})
 	}
 }
-
-func TestHelmKnownMediaTypes(t *testing.T) {
-	expectedRes := []string{HelmChartContentLayerMediaType}
-	res := HelmKnownMediaTypes()
-	assert.EqualValues(t, expectedRes, res)
-}

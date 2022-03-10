@@ -2,16 +2,27 @@ package resource
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/phayes/freeport"
+	"golang.org/x/crypto/bcrypt"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/distribution/distribution/v3/configuration"
+	"github.com/distribution/distribution/v3/registry"
+	_ "github.com/distribution/distribution/v3/registry/auth/htpasswd"           // used for docker test registry
+	_ "github.com/distribution/distribution/v3/registry/storage/driver/inmemory" // used for docker test registry
 	"github.com/stretchr/testify/assert"
+	ociRegistry "helm.sh/helm/v3/pkg/registry"
 )
 
 type TestDetailParam struct {
@@ -30,6 +41,13 @@ type TestDetail struct {
 }
 
 type Detail interface{}
+
+type OCIServer struct {
+	RegistryURL  string
+	TestUsername string
+	TestPassword string
+	Chart        string
+}
 
 // TestMergeMaps is to test MergeMaps
 func TestMergeMaps(t *testing.T) {
@@ -725,4 +743,119 @@ func TestPopLastKnownError(t *testing.T) {
 			assert.EqualValues(t, d.expected, LastKnownErrors)
 		})
 	}
+}
+
+func NewOCIServerWithChart(t *testing.T) (*OCIServer, error) {
+	testHtpasswdFileBasename := "authtest.htpasswd"
+	testUsername, testPassword := "username", "password"
+
+	pwBytes, err := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatal("error generating bcrypt password for test htpasswd file")
+	}
+	htpasswdPath := filepath.Join(TestFolder, testHtpasswdFileBasename)
+	err = ioutil.WriteFile(htpasswdPath, []byte(fmt.Sprintf("%s:%s\n", testUsername, string(pwBytes))), 0644)
+	if err != nil {
+		t.Fatalf("error creating test htpasswd file")
+	}
+
+	defer os.Remove(testHtpasswdFileBasename)
+
+	// Registry config
+	config := &configuration.Configuration{}
+	port, err := freeport.GetFreePort()
+	if err != nil {
+		t.Fatalf("error finding free port for test registry")
+	}
+
+	config.HTTP.Addr = fmt.Sprintf(":%d", port)
+	config.HTTP.DrainTimeout = time.Duration(10) * time.Second
+	config.Storage = map[string]configuration.Parameters{"inmemory": map[string]interface{}{}}
+	config.Auth = configuration.Auth{
+		"htpasswd": configuration.Parameters{
+			"realm": "localhost",
+			"path":  htpasswdPath,
+		},
+	}
+
+	r, err := registry.NewRegistry(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go r.ListenAndServe()
+
+	registryURL := fmt.Sprintf("localhost:%d", port)
+
+	credentialsFile := filepath.Join(TestFolder, "config.json")
+	defer os.Remove(credentialsFile)
+
+	// init test client
+	registryClient, err := ociRegistry.NewClient(
+		ociRegistry.ClientOptDebug(true),
+		ociRegistry.ClientOptWriter(os.Stdout),
+		ociRegistry.ClientOptCredentialsFile(credentialsFile),
+	)
+	if err != nil {
+		t.Fatalf("error creating registry client")
+	}
+
+	err = registryClient.Login(
+		registryURL,
+		ociRegistry.LoginOptBasicAuth(testUsername, testPassword),
+		ociRegistry.LoginOptInsecure(false))
+	if err != nil {
+		t.Fatalf("error logging into registry with good credentials")
+	}
+
+	ref := fmt.Sprintf("%s/u/ocitestuser/oci-dependent-chart:0.1.0", registryURL)
+
+	err = chartutil.ExpandFile(TestFolder, filepath.Join(TestFolder, "oci-dependent-chart-0.1.0.tgz"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// valid chart
+	ch, err := loader.LoadDir(filepath.Join(TestFolder, "oci-dependent-chart"))
+	if err != nil {
+		t.Fatal("error loading chart")
+	}
+
+	err = os.RemoveAll(filepath.Join(TestFolder, "oci-dependent-chart"))
+	if err != nil {
+		t.Fatal("error removing chart before push")
+	}
+
+	// save it back to disk..
+	absPath, err := chartutil.Save(ch, TestFolder)
+	if err != nil {
+		t.Fatal("could not create chart archive")
+	}
+
+	// load it into memory...
+	contentBytes, err := ioutil.ReadFile(absPath)
+	if err != nil {
+		t.Fatal("could not load chart into memory")
+	}
+
+	_, err = registryClient.Push(contentBytes, ref)
+	if err != nil {
+		t.Fatalf("error pushing dependent chart: %s", err)
+	}
+	return &OCIServer{
+		RegistryURL:  registryURL,
+		TestUsername: testUsername,
+		TestPassword: testPassword,
+		Chart:        "u/ocitestuser/oci-dependent-chart:0.1.0",
+	}, nil
+}
+
+func TestDownloadOCI(t *testing.T) {
+	testServer, err := NewOCIServerWithChart(t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("OCI", func(t *testing.T) {
+		err := downloadOCI(testServer.RegistryURL, testServer.Chart, testServer.TestUsername, testServer.TestPassword, "/dev/null")
+		assert.Nil(t, err)
+	})
 }
