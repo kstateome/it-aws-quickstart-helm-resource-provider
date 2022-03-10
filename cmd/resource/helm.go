@@ -36,14 +36,6 @@ const (
 	caLocalPath          = "/tmp/ca.pem"
 )
 
-const (
-	// HelmChartConfigMediaType is the reserved media type for the Helm chart manifest config
-	HelmChartConfigMediaType = "application/vnd.cncf.helm.config.v1+json"
-
-	// HelmChartContentLayerMediaType is the reserved media type for Helm chart package content
-	HelmChartContentLayerMediaType = "application/tar+gzip"
-)
-
 type HelmStatusData struct {
 	Status       release.Status `json:",omitempty"`
 	Namespace    string         `json:",omitempty"`
@@ -455,12 +447,4 @@ func (c *Clients) HelmVerifyRelease(name string, id string) (ReleaseState, error
 		return ReleaseError, errors.New("unknown error")
 	}
 	return ReleaseFound, nil
-}
-
-// HelmKnownMediaTypes returns a list of layer mediaTypes that the Helm client knows about
-func HelmKnownMediaTypes() []string {
-	return []string{
-		//HelmChartConfigMediaType,
-		HelmChartContentLayerMediaType,
-	}
 }

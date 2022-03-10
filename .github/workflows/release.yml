@@ -24,11 +24,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install cloudformation-cli-go-plugin
 
-      # Setup go 1.16
+      # Setup go 1.17
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-            go-version: 1.16.x
+            go-version: 1.17.x
 
       # Make the package from Makefile.package
       - name: Make package
