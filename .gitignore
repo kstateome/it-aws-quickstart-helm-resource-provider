@@ -15,3 +15,5 @@ kube.sh
 go.sum
 *.zip
 coverage.out
+.pre-commit-config.yaml
+.editorconfig
