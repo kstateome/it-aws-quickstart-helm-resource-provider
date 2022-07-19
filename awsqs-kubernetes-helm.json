@@ -1,6 +1,6 @@
 {
     "typeName": "AWSQS::Kubernetes::Helm",
-    "description": "A resource provider for managing helm.",
+    "description": "A resource provider for managing helm. Version: 1.2.1",
     "sourceUrl": "https://github.com/aws-quickstart/quickstart-helm-resource-provider.git",
     "documentationUrl": "https://github.com/aws-quickstart/quickstart-helm-resource-provider/blob/main/README.md",
     "definitions": {
