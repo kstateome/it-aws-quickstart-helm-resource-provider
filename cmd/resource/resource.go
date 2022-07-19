@@ -27,14 +27,18 @@ func Create(req handler.Request, _ *Model, currentModel *Model) (handler.Progres
 	stage := getStage(req.CallbackContext)
 	switch stage {
 	case InitStage, LambdaStabilize:
-		log.Printf("Starting %s...", stage)
+		log.Printf("Starting %s... %s %s %s", stage, os.Getenv("_X_AMZN_TRACE_ID"), os.Getenv("StartTime"), time.Now().Format(time.RFC3339))
 		if currentModel.Name == nil {
 			currentModel.Name = getReleaseNameContext(req.CallbackContext)
 		}
-		return initialize(req.Session, currentModel, InstallReleaseAction), nil
+		resp := initialize(req.Session, currentModel, InstallReleaseAction)
+		log.Printf("Done %s... %s %s %s", stage, os.Getenv("_X_AMZN_TRACE_ID"), os.Getenv("StartTime"), time.Now().Format(time.RFC3339))
+		return resp, nil
 	case ReleaseStabilize:
-		log.Printf("Starting %s...", stage)
-		return checkReleaseStatus(req.Session, currentModel, CompleteStage), nil
+		log.Printf("Starting %s... %s %s %s", stage, os.Getenv("_X_AMZN_TRACE_ID"), os.Getenv("StartTime"), time.Now().Format(time.RFC3339))
+		resp := checkReleaseStatus(req.Session, currentModel, CompleteStage)
+		log.Printf("Done %s... %s %s %s", stage, os.Getenv("_X_AMZN_TRACE_ID"), os.Getenv("StartTime"), time.Now().Format(time.RFC3339))
+		return resp, nil
 	default:
 		log.Println("Failed to identify stage.")
 		return makeEvent(currentModel, NoStage, NewError(ErrCodeInvalidException, fmt.Sprintf("unhandled stage %s", stage))), nil
