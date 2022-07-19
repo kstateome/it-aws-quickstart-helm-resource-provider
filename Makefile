@@ -8,7 +8,7 @@ EX_ROLE ?= use-existing
 LOG_ROLE ?= use-existing
 
 build:
-	go mod tidy
+	go mod tidy -v
 	cfn generate
 	env CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -tags="logging" -o bin/handler cmd/main.go
 	env CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/k8svpc vpc/main.go
