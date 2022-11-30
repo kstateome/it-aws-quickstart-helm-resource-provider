@@ -20,7 +20,7 @@ require (
 	k8s.io/cli-runtime v0.24.2
 	k8s.io/client-go v0.24.2
 	k8s.io/kubectl v0.24.2
-	sigs.k8s.io/aws-iam-authenticator v0.5.8-0.20220719090955-bc28918e01f1
+	sigs.k8s.io/aws-iam-authenticator v0.5.9
 	sigs.k8s.io/yaml v1.3.0
 )
 
