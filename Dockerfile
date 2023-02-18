@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine
+FROM public.ecr.aws/docker/library/golang:1.19-alpine
 
 RUN apk --no-cache add py3-pip make git zip
 
