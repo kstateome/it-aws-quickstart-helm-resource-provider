@@ -1,3 +1,6 @@
+# Deprecation Notice
+On 03/31/2023. Support for this Public Resource type will be retired. Please see [Issue #73](https://github.com/aws-quickstart/quickstart-helm-resource-provider/issues/73)for more information.
+
 # AWSQS::Kubernetes::Helm
 
 An AWS CloudFormation resource provider for the management of helm 3 resources in EKS and self-managed Kubernetes clusters.
@@ -6,7 +9,7 @@ An AWS CloudFormation resource provider for the management of helm 3 resources i
 
 ### IAM role
 An IAM role is used by CloudFormation to execute the Helm resource type handler code.
-A CloudFormation template to create the execution role is available 
+A CloudFormation template to create the execution role is available
 [here](https://github.com/aws-quickstart/quickstart-helm-resource-provider/blob/main/execution-role.template.yaml)
 
 ### Create an EKS cluster and provide CloudFormation access to the Kubernetes API
