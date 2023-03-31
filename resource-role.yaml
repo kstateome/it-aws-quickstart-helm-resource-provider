@@ -15,6 +15,13 @@ Resources:
             Principal:
               Service: resources.cloudformation.amazonaws.com
             Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: AWS::AccountId
+              StringLike:
+                aws:SourceArn:
+                  Fn::Sub: arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:type/resource/AWSQS-Kubernetes-Helm/*
       Path: "/"
       Policies:
         - PolicyName: ResourceTypePolicy
@@ -23,32 +30,11 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                - "ec2:CreateNetworkInterface"
-                - "ec2:DeleteNetworkInterface"
-                - "ec2:DescribeNetworkInterfaces"
-                - "ec2:DescribeRouteTables"
-                - "ec2:DescribeSecurityGroups"
-                - "ec2:DescribeSubnets"
-                - "ec2:DescribeVpcs"
-                - "ecr:BatchCheckLayerAvailability"
-                - "ecr:BatchGetImage"
-                - "ecr:GetAuthorizationToken"
-                - "ecr:GetDownloadUrlForLayer"
-                - "eks:DescribeCluster"
-                - "iam:PassRole"
-                - "kms:Decrypt"
-                - "lambda:CreateFunction"
-                - "lambda:DeleteFunction"
-                - "lambda:GetFunction"
-                - "lambda:InvokeFunction"
-                - "lambda:UpdateFunctionCode"
-                - "lambda:UpdateFunctionConfiguration"
-                - "logs:CreateLogGroup"
-                - "logs:CreateLogStream"
-                - "logs:PutLogEvents"
-                - "s3:GetObject"
-                - "secretsmanager:GetSecretValue"
-                - "sts:AssumeRole"
+                - "initech:CreateReport"
+                - "initech:DeleteReport"
+                - "initech:DescribeReport"
+                - "initech:ListReports"
+                - "initech:UpdateReport"
                 Resource: "*"
 Outputs:
   ExecutionRoleArn:

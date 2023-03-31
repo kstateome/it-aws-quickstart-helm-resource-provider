@@ -4,23 +4,21 @@ Description: AWS SAM template for the AWSQS::Kubernetes::Helm resource type
 
 Globals:
   Function:
-    Timeout: 300  # docker start-up times can be long for SAM CLI
+    Timeout: 180  # docker start-up times can be long for SAM CLI
+    MemorySize: 256
 
 Resources:
   TypeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handler
-      Runtime: go1.x
-      CodeUri: bin/
+      Handler: awsqs_kubernetes_helm.handlers.resource
+      Runtime: python3.9
+      CodeUri: build/
 
   TestEntrypoint:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handler
-      Runtime: go1.x
-      CodeUri: bin/
-      Environment: 
-        Variables: 
-          MODE: Test
+      Handler: awsqs_kubernetes_helm.handlers.test_entrypoint
+      Runtime: python3.9
+      CodeUri: build/
 

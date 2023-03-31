@@ -1,15 +1,16 @@
-FROM public.ecr.aws/docker/library/golang:1.19-alpine
+FROM lambci/lambda:build-python3.8
 
-RUN apk --no-cache add py3-pip make git zip
-
-RUN pip3 install cloudformation-cli-go-plugin
+# https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
+# N-1 version strategy for maximum interop coverage
+ENV VERSION="1.23.15/2023-01-11"
 
 COPY . /build
 
 WORKDIR /build
 
-RUN GOPROXY=direct go mod download
+RUN cd src && zip -r -q ../ResourceProvider.zip ./ && \
+    cd ../ && \
+    find . -exec touch -t 202007010000.00 {} + && \
+    zip -X -r -q ./ResourceProvider.zip awsqs-kubernetes-helm.json
 
-RUN GOPROXY=direct make -f Makefile.package package
-
-CMD mkdir -p /output/ && mv /build/awsqs-kubernetes-helm.zip /output/
+CMD mkdir -p /output/ && mv /build/*.zip /output/
