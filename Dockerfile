@@ -10,7 +10,9 @@ WORKDIR /build
 
 RUN cd src && zip -r -q ../ResourceProvider.zip ./ && \
     cd ../ && \
+    mv awsqs-kubernetes-helm.json schema.json && \
     find . -exec touch -t 202007010000.00 {} + && \
-    zip -X -r -q ./ResourceProvider.zip awsqs-kubernetes-helm.json
+    zip -X -r -q ./awsqs_kubernetes_helm.zip ./ResourceProvider.zip schema.json .rpdk-config
 
+RUN ls
 CMD mkdir -p /output/ && mv /build/*.zip /output/

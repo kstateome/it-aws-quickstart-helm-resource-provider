@@ -1,9 +1,8 @@
 .PHONY: build publish clean
 
 REGION ?= us-east-1
-BUCKET ?= jmmccon-uno-dev
-EX_ROLE ?= arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
-LOG_ROLE ?= arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+BUCKET ?= uno-resource-type-dev
+EX_ROLE ?= arn:aws:iam::336362434857:role/awsqs-kubernetes-helm-role-ExecutionRole-1EPZ1X9EIFIIJ
 
 build:
 	docker build . -t k8s-cfn-build
@@ -20,7 +19,6 @@ publish:
         --type "RESOURCE" \
         --type-name  "AWSQS::Kubernetes::$${TYPE_NAME}" \
         --schema-handler-package s3://$(BUCKET)/awsqs_kubernetes_$${n}.zip \
-        --logging-config LogRoleArn=$(LOG_ROLE),LogGroupName=/cloudformation/registry/awsqs-kubernetes-$${n} \
         --execution-role-arn $(EX_ROLE) \
         --region $(REGION) \
         --query RegistrationToken \
@@ -44,5 +42,6 @@ publish:
         sleep 5 ; \
       done ;\
       aws cloudformation set-type-default-version --arn $${ARN} --region $(REGION)
+
 clean:
 	rm -rf build/

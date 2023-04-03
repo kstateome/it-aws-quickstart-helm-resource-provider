@@ -4,7 +4,7 @@
     "language": "python39",
     "runtime": "python3.9",
     "entrypoint": "awsqs_kubernetes_helm.handlers.resource",
-    "testEntrypoint": "awsqs_kubernetes_helm.handlers.test_entrypoint",
+    "testEntrypoint": "awsqs_kubernetes_helm.handlers.resource",
     "settings": {
         "version": false,
         "subparser_name": null,
