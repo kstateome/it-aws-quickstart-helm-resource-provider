@@ -3,6 +3,7 @@
 REGION ?= us-east-1
 BUCKET ?= uno-resource-type-dev
 EX_ROLE ?= arn:aws:iam::336362434857:role/awsqs-kubernetes-helm-role-ExecutionRole-1EPZ1X9EIFIIJ
+LOG_ROLE ?= arn:aws:iam::336362434857:role/eks-cluster-log-delivery
 
 build:
 	docker build . -t k8s-cfn-build
@@ -19,6 +20,7 @@ publish:
         --type "RESOURCE" \
         --type-name  "AWSQS::Kubernetes::$${TYPE_NAME}" \
         --schema-handler-package s3://$(BUCKET)/awsqs_kubernetes_$${n}.zip \
+        --logging-config LogRoleArn=$(LOG_ROLE),LogGroupName=/cloudformation/registry/awsqs-kubernetes-$${n} \
         --execution-role-arn $(EX_ROLE) \
         --region $(REGION) \
         --query RegistrationToken \
