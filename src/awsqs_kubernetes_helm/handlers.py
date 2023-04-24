@@ -18,7 +18,7 @@ from .models import ResourceHandlerRequest, ResourceModel, TypeConfigurationMode
 
 # Use this logger to forward log messages to CloudWatch Logs.
 LOG = logging.getLogger(__name__)
-TYPE_NAME = "Stocks::Orders::MarketOrder"
+TYPE_NAME = "AWSQS::Kubernetes::Helm"
 
 resource = Resource(TYPE_NAME, ResourceModel, TypeConfigurationModel)
 test_entrypoint = resource.test_entrypoint
