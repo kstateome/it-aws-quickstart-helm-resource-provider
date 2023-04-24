@@ -2,8 +2,8 @@
 
 REGION ?= us-east-1
 BUCKET ?= uno-resource-type-dev
-EX_ROLE ?= arn:aws:iam::336362434857:role/awsqs-kubernetes-helm-role-ExecutionRole-1EPZ1X9EIFIIJ
-LOG_ROLE ?= arn:aws:iam::336362434857:role/eks-cluster-log-delivery
+EX_ROLE ?= arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
+LOG_ROLE ?= arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>
 
 build:
 	docker build . -t k8s-cfn-build
